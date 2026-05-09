@@ -11,6 +11,5 @@ fn main() {
     file.read_to_string(&mut input)
         .expect("Unable to read file.");
 
-    let mut program = Program::new();
-    program.run(tokenise(&input));
+    let mut program = Program::new(tokenise(&input));
 }

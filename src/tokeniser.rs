@@ -1,17 +1,24 @@
-use crate::instruction::{
-    Decrement, Increment, Input, InstructionSet, Left, LeftJump, Output, Right, RightJump,
-};
+pub enum Token {
+    Right,
+    Left,
+    Increment,
+    Decrement,
+    Input,
+    Output,
+    RightJump,
+    LeftJump,
+}
 
-pub fn tokenise(source: &String) -> impl Iterator<Item = InstructionSet> {
+pub fn tokenise(source: &String) -> impl Iterator<Item = Token> {
     source.as_bytes().iter().filter_map(|c| match c {
-        b'>' => Some(Right.into()),
-        b'<' => Some(Left.into()),
-        b'+' => Some(Increment.into()),
-        b'-' => Some(Decrement.into()),
-        b'.' => Some(Output.into()),
-        b',' => Some(Input.into()),
-        b'[' => Some(RightJump.into()),
-        b']' => Some(LeftJump.into()),
+        b'>' => Some(Token::Right),
+        b'<' => Some(Token::Left),
+        b'+' => Some(Token::Increment),
+        b'-' => Some(Token::Decrement),
+        b'.' => Some(Token::Output),
+        b',' => Some(Token::Input),
+        b'[' => Some(Token::RightJump),
+        b']' => Some(Token::LeftJump),
         _ => None,
     })
 }
