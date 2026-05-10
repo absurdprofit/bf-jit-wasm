@@ -13,10 +13,10 @@ fn main() {
     }
     let path = path.unwrap();
     let mut file = File::open(&path).expect(&format!("File not found at {}.", path)[..]);
-    let mut input = String::new();
-    file.read_to_string(&mut input)
+    let mut source = String::new();
+    file.read_to_string(&mut source)
         .expect(&format!("Unable to read file at {}.", path)[..]);
 
-    let mut program = Program::new(tokenise(&input, &path));
+    let mut program = Program::new(tokenise(&source, &path));
     program.run();
 }

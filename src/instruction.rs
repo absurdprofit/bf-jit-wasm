@@ -52,6 +52,7 @@ pub struct LeftJump {
 #[enum_dispatch]
 pub trait Instruction {
     fn execute(&self, program: &mut Program) -> ();
+    fn emit_wasm(&self) -> Vec<u8>;
 }
 
 impl Increment {
@@ -65,6 +66,10 @@ impl Instruction for Increment {
         program.memory[program.pointer] = program.memory[program.pointer].wrapping_add(self.amount);
         program.counter += 1;
     }
+
+    fn emit_wasm(&self) -> Vec<u8> {
+        vec![]
+    }
 }
 
 impl Decrement {
@@ -77,6 +82,10 @@ impl Instruction for Decrement {
     fn execute(&self, program: &mut Program) -> () {
         program.memory[program.pointer] = program.memory[program.pointer].wrapping_sub(self.amount);
         program.counter += 1;
+    }
+
+    fn emit_wasm(&self) -> Vec<u8> {
+        vec![]
     }
 }
 
@@ -98,6 +107,10 @@ impl Instruction for Left {
         );
         program.pointer -= self.count;
         program.counter += 1;
+    }
+
+    fn emit_wasm(&self) -> Vec<u8> {
+        vec![]
     }
 }
 
@@ -121,6 +134,10 @@ impl Instruction for Right {
         }
         program.counter += 1;
     }
+
+    fn emit_wasm(&self) -> Vec<u8> {
+        vec![]
+    }
 }
 
 impl Input {
@@ -138,6 +155,10 @@ impl Instruction for Input {
         }
         program.counter += 1;
     }
+
+    fn emit_wasm(&self) -> Vec<u8> {
+        vec![]
+    }
 }
 
 impl Output {
@@ -152,6 +173,10 @@ impl Instruction for Output {
             print!("{}", program.memory[program.pointer] as char);
         }
         program.counter += 1;
+    }
+
+    fn emit_wasm(&self) -> Vec<u8> {
+        vec![]
     }
 }
 
@@ -169,6 +194,10 @@ impl Instruction for RightJump {
             program.counter + 1
         }
     }
+
+    fn emit_wasm(&self) -> Vec<u8> {
+        vec![]
+    }
 }
 
 impl LeftJump {
@@ -184,6 +213,10 @@ impl Instruction for LeftJump {
         } else {
             program.counter + 1
         }
+    }
+
+    fn emit_wasm(&self) -> Vec<u8> {
+        vec![]
     }
 }
 
