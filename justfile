@@ -20,6 +20,8 @@ build-web: build-wasm32
     --out-dir target/web \
     --target web
   @cp src/web/* target/web/
+  @mkdir target/web/examples
+  @cp examples/* target/web/examples/
 
 build-wasm32:
   @cargo build --lib --target wasm32-unknown-unknown

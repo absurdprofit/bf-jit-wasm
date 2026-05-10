@@ -12,7 +12,10 @@
     import init, { run } from './bf_jit_wasm.js';
 
     await init();
-    run('[-]', 'test.bf');
+
+    const path = 'examples/hello.bf';
+    const response = await fetch(path);
+    run(await response.text(), path);
   </script>
   <script type="importmap">
     {

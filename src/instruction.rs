@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use enum_dispatch::enum_dispatch;
 
 use crate::{
@@ -168,7 +170,8 @@ impl Output {
 impl Instruction for Output {
     fn execute(&self, program: &mut Program) -> () {
         for _ in 0..self.count {
-            print!("{}", program.memory[program.pointer] as char);
+            RuntimeIO::write_all(&program.memory[program.pointer..program.pointer + 1])
+                .expect("Failed to write byte to standard output.");
         }
         program.counter += 1;
     }
