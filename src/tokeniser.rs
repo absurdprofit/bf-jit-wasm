@@ -25,7 +25,7 @@ pub enum Token {
     LeftJump(SourceMapping),
 }
 
-pub fn tokenise(source: &String, path: &String) -> impl Iterator<Item = Token> {
+pub fn tokenise(source: &str, path: &str) -> impl Iterator<Item = Token> {
     let mut line = 1;
     let mut column = 0;
     source.as_bytes().iter().filter_map(move |c| {
@@ -39,12 +39,12 @@ pub fn tokenise(source: &String, path: &String) -> impl Iterator<Item = Token> {
             b'>' => Some(Token::Right(SourceMapping {
                 column,
                 line,
-                file_path: path.clone(),
+                file_path: String::from(path),
             })),
             b'<' => Some(Token::Left(SourceMapping {
                 column,
                 line,
-                file_path: path.clone(),
+                file_path: String::from(path),
             })),
             b'+' => Some(Token::Increment),
             b'-' => Some(Token::Decrement),
@@ -53,12 +53,12 @@ pub fn tokenise(source: &String, path: &String) -> impl Iterator<Item = Token> {
             b'[' => Some(Token::RightJump(SourceMapping {
                 column,
                 line,
-                file_path: path.clone(),
+                file_path: String::from(path),
             })),
             b']' => Some(Token::LeftJump(SourceMapping {
                 column,
                 line,
-                file_path: path.clone(),
+                file_path: String::from(path),
             })),
             _ => None,
         }
