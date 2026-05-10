@@ -2,27 +2,42 @@ use enum_dispatch::enum_dispatch;
 
 use crate::program::Program;
 
+#[derive(Clone, Debug)]
 pub struct Right {
     count: usize,
 }
+
+#[derive(Clone, Debug)]
 pub struct Left {
     count: usize,
 }
+
+#[derive(Clone, Debug)]
 pub struct Increment {
     amount: u8,
 }
+
+#[derive(Clone, Debug)]
 pub struct Decrement {
     amount: u8,
 }
+
+#[derive(Clone, Debug)]
 pub struct Input {
     count: usize,
 }
+
+#[derive(Clone, Debug)]
 pub struct Output {
     count: usize,
 }
+
+#[derive(Clone, Debug)]
 pub struct RightJump {
     end: usize,
 }
+
+#[derive(Clone, Debug)]
 pub struct LeftJump {
     start: usize,
 }
@@ -41,7 +56,8 @@ impl Increment {
 impl Instruction for Increment {
     fn execute(&self, program: &mut Program) -> () {
         let value = program.memory[program.pointer];
-        program.memory[program.pointer].wrapping_add(value + self.amount);
+        program.memory[program.pointer] =
+            program.memory[program.pointer].wrapping_add(value + self.amount);
         program.counter += 1;
     }
 }
@@ -55,7 +71,8 @@ impl Decrement {
 impl Instruction for Decrement {
     fn execute(&self, program: &mut Program) -> () {
         let value = program.memory[program.pointer];
-        program.memory[program.pointer].wrapping_sub(value + self.amount);
+        program.memory[program.pointer] =
+            program.memory[program.pointer].wrapping_sub(value + self.amount);
         program.counter += 1;
     }
 }
@@ -106,7 +123,9 @@ impl Output {
 
 impl Instruction for Output {
     fn execute(&self, program: &mut Program) -> () {
-        print!("{}", program.memory[program.pointer]);
+        for _ in 0..self.count {
+            print!("{}", program.memory[program.pointer]);
+        }
         program.counter += 1;
     }
 }
@@ -144,6 +163,7 @@ impl Instruction for LeftJump {
 }
 
 #[enum_dispatch(Instruction)]
+#[derive(Clone, Debug)]
 pub enum InstructionSet {
     Right,
     Left,

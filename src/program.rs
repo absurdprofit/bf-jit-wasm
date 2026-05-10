@@ -1,6 +1,6 @@
 use crate::{
-    instruction::{self, Instruction, InstructionSet, LeftJump, RightJump},
-    tokeniser::{self, Token},
+    instruction::{self, Instruction, InstructionSet},
+    tokeniser::{self},
 };
 
 pub struct Program {
@@ -11,7 +11,7 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(tokens: impl Iterator<Item = Token>) -> Self {
+    pub fn new(tokens: impl Iterator<Item = tokeniser::Token>) -> Self {
         Self {
             counter: 0,
             memory: vec![0],
@@ -20,18 +20,18 @@ impl Program {
         }
     }
 
-    // pub fn run(&mut self) {
-    //     while self.counter < self.instructions.len() {
-    //         let instruction = &self.instructions[self.counter];
-    //         instruction.execute(self);
-    //     }
-    // }
+    pub fn run(&mut self) {
+        while self.counter < self.instructions.len() {
+            let instruction = &self.instructions[self.counter].clone();
+            instruction.execute(self);
+        }
+    }
 
-    fn collect_tokens(tokens: impl Iterator<Item = Token>) -> Vec<InstructionSet> {
+    fn collect_tokens(tokens: impl Iterator<Item = tokeniser::Token>) -> Vec<InstructionSet> {
         let mut instructions: Vec<InstructionSet> = vec![];
         let mut stack = vec![];
-        let mut token_instance: Option<Token> = None;
-        let mut token_instance_count = 0;
+        let mut token_instance: Option<tokeniser::Token> = None;
+        let mut token_instance_count: usize = 0;
         for token in tokens {
             match token {
                 tokeniser::Token::RightJump => {
@@ -46,14 +46,39 @@ impl Program {
                     instructions.push(instruction::LeftJump::new(start).into());
                 }
                 token => {
-                    if let Some(instance) = token_instance {
-                        if instance == token {
+                    if let Some(ref instance) = token_instance {
+                        if *instance == token {
                             token_instance_count += 1;
+                            continue;
                         } else {
-                            token_instance_count = 1;
-                            token_instance = Some(token);
+                            let instruction: InstructionSet = match token {
+                                tokeniser::Token::Right => {
+                                    instruction::Right::new(token_instance_count).into()
+                                }
+                                tokeniser::Token::Left => {
+                                    instruction::Left::new(token_instance_count).into()
+                                }
+                                tokeniser::Token::Increment => {
+                                    instruction::Increment::new(token_instance_count as u8).into()
+                                }
+                                tokeniser::Token::Decrement => {
+                                    instruction::Decrement::new(token_instance_count as u8).into()
+                                }
+                                tokeniser::Token::Input => {
+                                    instruction::Input::new(token_instance_count).into()
+                                }
+                                tokeniser::Token::Output => {
+                                    instruction::Output::new(token_instance_count).into()
+                                }
+                                _ => unreachable!(
+                                    "Jumps have been specially handled earlier in the routine."
+                                ),
+                            };
+                            instructions.push(instruction);
                         }
                     }
+                    token_instance_count = 1;
+                    token_instance = Some(token);
                 }
             }
         }

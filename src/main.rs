@@ -12,4 +12,5 @@ fn main() {
         .expect("Unable to read file.");
 
     let mut program = Program::new(tokenise(&input));
+    program.run();
 }
