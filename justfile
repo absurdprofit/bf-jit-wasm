@@ -20,7 +20,7 @@ build-web: build-wasm32
     --out-dir target/web \
     --target web
   @cp src/web/* target/web/
-  @mkdir target/web/examples
+  @mkdir -p target/web/examples
   @cp examples/* target/web/examples/
 
 build-wasm32:
