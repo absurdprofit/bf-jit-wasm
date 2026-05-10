@@ -1,4 +1,5 @@
 mod instruction;
+mod io;
 mod program;
 mod tokeniser;
 use std::{env, fs::File, io::Read};

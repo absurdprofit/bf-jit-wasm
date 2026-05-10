@@ -1,4 +1,5 @@
 mod instruction;
+mod io;
 mod program;
 mod tokeniser;
 use wasm_bindgen::prelude::wasm_bindgen;

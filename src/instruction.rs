@@ -1,8 +1,7 @@
-use std::io::{self, Read};
-
 use enum_dispatch::enum_dispatch;
 
 use crate::{
+    io::{IO, RuntimeIO},
     program::Program,
     tokeniser::{self, SourceMapping},
 };
@@ -149,8 +148,7 @@ impl Input {
 impl Instruction for Input {
     fn execute(&self, program: &mut Program) -> () {
         for _ in 0..self.count {
-            io::stdin()
-                .read_exact(&mut program.memory[program.pointer..program.pointer + 1])
+            RuntimeIO::read_exact(&mut program.memory[program.pointer..program.pointer + 1])
                 .expect("Failed to read byte from standard input.");
         }
         program.counter += 1;
