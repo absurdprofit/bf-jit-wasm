@@ -25,7 +25,6 @@ impl IO for RuntimeIO {
 
 #[wasm_bindgen(module = "imports.js")]
 extern "C" {
-    #[wasm_bindgen()]
     fn extern_read() -> u8;
     fn extern_write(buf: u8) -> ();
 }

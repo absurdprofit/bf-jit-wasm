@@ -10,8 +10,10 @@
 <body>
   <script type="module">
     import init, { run } from './bf_jit_wasm.js';
+    import { setMemory } from './imports.js';
 
-    await init();
+    const { memory } = await init();
+    setMemory(memory);
 
     const path = 'examples/hello.bf';
     const response = await fetch(path);

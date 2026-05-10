@@ -1,5 +1,3 @@
-use std::io::{self, Write};
-
 use enum_dispatch::enum_dispatch;
 
 use crate::{
@@ -53,7 +51,7 @@ pub struct LeftJump {
 #[enum_dispatch]
 pub trait Instruction {
     fn execute(&self, program: &mut Program) -> ();
-    fn emit_wasm(&self) -> Vec<u8>;
+    fn emit(&self) -> Vec<u8>;
 }
 
 impl Increment {
@@ -68,7 +66,7 @@ impl Instruction for Increment {
         program.counter += 1;
     }
 
-    fn emit_wasm(&self) -> Vec<u8> {
+    fn emit(&self) -> Vec<u8> {
         vec![]
     }
 }
@@ -85,7 +83,7 @@ impl Instruction for Decrement {
         program.counter += 1;
     }
 
-    fn emit_wasm(&self) -> Vec<u8> {
+    fn emit(&self) -> Vec<u8> {
         vec![]
     }
 }
@@ -110,7 +108,7 @@ impl Instruction for Left {
         program.counter += 1;
     }
 
-    fn emit_wasm(&self) -> Vec<u8> {
+    fn emit(&self) -> Vec<u8> {
         vec![]
     }
 }
@@ -136,7 +134,7 @@ impl Instruction for Right {
         program.counter += 1;
     }
 
-    fn emit_wasm(&self) -> Vec<u8> {
+    fn emit(&self) -> Vec<u8> {
         vec![]
     }
 }
@@ -156,7 +154,7 @@ impl Instruction for Input {
         program.counter += 1;
     }
 
-    fn emit_wasm(&self) -> Vec<u8> {
+    fn emit(&self) -> Vec<u8> {
         vec![]
     }
 }
@@ -176,7 +174,7 @@ impl Instruction for Output {
         program.counter += 1;
     }
 
-    fn emit_wasm(&self) -> Vec<u8> {
+    fn emit(&self) -> Vec<u8> {
         vec![]
     }
 }
@@ -196,7 +194,7 @@ impl Instruction for RightJump {
         }
     }
 
-    fn emit_wasm(&self) -> Vec<u8> {
+    fn emit(&self) -> Vec<u8> {
         vec![]
     }
 }
@@ -216,7 +214,7 @@ impl Instruction for LeftJump {
         }
     }
 
-    fn emit_wasm(&self) -> Vec<u8> {
+    fn emit(&self) -> Vec<u8> {
         vec![]
     }
 }
