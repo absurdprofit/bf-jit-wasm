@@ -1,4 +1,9 @@
-install_wasm_bindgen_cli := "cargo install wasm-bindgen-cli"
+set unstable #enabled for the use of which() function
+install_wasm_bindgen_cli := f which("wasm-bindgen") != "" {
+  "echo ✅ wasm-bindgen-cli is already installed"
+} else {
+  "cargo install wasm-bindgen-cli"
+}
 
 default path: build
   @./target/release/bf-jit-wasm {{path}}
