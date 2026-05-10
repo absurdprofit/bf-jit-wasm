@@ -1,17 +1,22 @@
 mod instruction;
 mod program;
 mod tokeniser;
-use std::{fs::File, io::Read};
+use std::{env, fs::File, io::Read};
 
 use crate::{program::Program, tokeniser::tokenise};
 
 fn main() {
-    let path = "test.bf";
-    let mut file = File::open(path).expect("File not found.");
+    let args = env::args();
+    let path = args.skip(1).next();
+    if path.is_none() {
+        panic!("Usage: <input.bf>");
+    }
+    let path = path.unwrap();
+    let mut file = File::open(&path).expect(&format!("File not found at {}.", path)[..]);
     let mut input = String::new();
     file.read_to_string(&mut input)
-        .expect("Unable to read file.");
+        .expect(&format!("Unable to read file at {}.", path)[..]);
 
-    let mut program = Program::new(tokenise(&input, &String::from(path)));
+    let mut program = Program::new(tokenise(&input, &path));
     program.run();
 }
