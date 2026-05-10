@@ -85,7 +85,7 @@ impl Left {
 
 impl Instruction for Left {
     fn execute(&self, program: &mut Program) -> () {
-        assert!(program.pointer > 0, "RUNTIME ERROR: Memory underflow.");
+        assert!(program.pointer > 0, "RuntimeError: Memory underflow.");
         program.pointer -= self.count;
         program.counter += 1;
     }

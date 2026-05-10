@@ -42,7 +42,7 @@ impl Program {
                     let start = stack.pop();
                     assert!(
                         start.is_some(),
-                        "SYNTAX ERROR: Unbalanced jump at {}.",
+                        "SyntaxError: Unbalanced jump at {}.",
                         source_mapping
                     );
                     let (start, _) = start.unwrap();
@@ -88,7 +88,7 @@ impl Program {
 
         assert!(
             stack.len() == 0,
-            "SYNTAX ERROR: Unbalanced jump at {}",
+            "SyntaxError: Unbalanced jump at {}",
             stack.pop().unwrap().1
         );
         instructions
