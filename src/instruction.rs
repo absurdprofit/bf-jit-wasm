@@ -55,9 +55,7 @@ impl Increment {
 
 impl Instruction for Increment {
     fn execute(&self, program: &mut Program) -> () {
-        let value = program.memory[program.pointer];
-        program.memory[program.pointer] =
-            program.memory[program.pointer].wrapping_add(value + self.amount);
+        program.memory[program.pointer] = program.memory[program.pointer].wrapping_add(self.amount);
         program.counter += 1;
     }
 }
@@ -70,9 +68,7 @@ impl Decrement {
 
 impl Instruction for Decrement {
     fn execute(&self, program: &mut Program) -> () {
-        let value = program.memory[program.pointer];
-        program.memory[program.pointer] =
-            program.memory[program.pointer].wrapping_sub(value + self.amount);
+        program.memory[program.pointer] = program.memory[program.pointer].wrapping_sub(self.amount);
         program.counter += 1;
     }
 }
@@ -102,6 +98,9 @@ impl Instruction for Right {
         // need to assert no overflow
         program.pointer += self.count;
         program.counter += 1;
+        if program.pointer >= program.memory.len() {
+            program.memory.push(0);
+        }
     }
 }
 
