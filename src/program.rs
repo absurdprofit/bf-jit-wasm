@@ -12,11 +12,12 @@ pub struct Program {
 
 impl Program {
     pub fn new(tokens: impl Iterator<Item = tokeniser::Token>) -> Self {
+        dbg!(Self::collect_tokens(tokens));
         Self {
             counter: 0,
             memory: vec![0],
             pointer: 0,
-            instructions: Self::collect_tokens(tokens),
+            instructions: vec![],
         }
     }
 
@@ -27,12 +28,11 @@ impl Program {
         }
     }
 
-    fn collect_tokens(tokens: impl Iterator<Item = tokeniser::Token>) -> Vec<InstructionSet> {
+    fn collect_tokens(mut tokens: impl Iterator<Item = tokeniser::Token>) -> Vec<InstructionSet> {
         let mut instructions: Vec<InstructionSet> = vec![];
         let mut stack = vec![];
-        let mut token_instance: Option<tokeniser::Token> = None;
         let mut token_instance_count: usize = 0;
-        for token in tokens {
+        while let Some(token) = tokens.next() {
             match token {
                 tokeniser::Token::RightJump => {
                     stack.push(instructions.len());
@@ -46,8 +46,8 @@ impl Program {
                     instructions.push(instruction::LeftJump::new(start).into());
                 }
                 token => {
-                    if let Some(ref instance) = token_instance {
-                        if *instance == token {
+                    if let Some(next) = tokens.next() {
+                        if token == next {
                             token_instance_count += 1;
                             continue;
                         } else {
@@ -78,10 +78,11 @@ impl Program {
                         }
                     }
                     token_instance_count = 1;
-                    token_instance = Some(token);
                 }
             }
         }
+
+        assert!(stack.len() == 0, "SYNTAX ERROR: Unbalanced jump.");
         instructions
     }
 }
