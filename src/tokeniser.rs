@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct SourceMapping {
     line: usize,
     column: usize,
@@ -15,8 +15,8 @@ impl Display for SourceMapping {
 
 #[derive(PartialEq)]
 pub enum Token {
-    Right,
-    Left,
+    Right(SourceMapping),
+    Left(SourceMapping),
     Increment,
     Decrement,
     Input,
@@ -36,8 +36,16 @@ pub fn tokenise(source: &String, path: &String) -> impl Iterator<Item = Token> {
             column += 1;
         }
         match c {
-            b'>' => Some(Token::Right),
-            b'<' => Some(Token::Left),
+            b'>' => Some(Token::Right(SourceMapping {
+                column,
+                line,
+                file_path: path.clone(),
+            })),
+            b'<' => Some(Token::Left(SourceMapping {
+                column,
+                line,
+                file_path: path.clone(),
+            })),
             b'+' => Some(Token::Increment),
             b'-' => Some(Token::Decrement),
             b'.' => Some(Token::Output),

@@ -1,15 +1,20 @@
 use enum_dispatch::enum_dispatch;
 
-use crate::program::Program;
+use crate::{
+    program::Program,
+    tokeniser::{self, SourceMapping},
+};
 
 #[derive(Clone, Debug)]
 pub struct Right {
     count: usize,
+    source_mapping: tokeniser::SourceMapping,
 }
 
 #[derive(Clone, Debug)]
 pub struct Left {
     count: usize,
+    source_mapping: tokeniser::SourceMapping,
 }
 
 #[derive(Clone, Debug)]
@@ -74,33 +79,45 @@ impl Instruction for Decrement {
 }
 
 impl Left {
-    pub fn new(count: usize) -> Self {
-        Self { count }
+    pub fn new(count: usize, source_mapping: SourceMapping) -> Self {
+        Self {
+            count,
+            source_mapping,
+        }
     }
 }
 
 impl Instruction for Left {
     fn execute(&self, program: &mut Program) -> () {
-        assert!(program.pointer > 0, "RuntimeError: Memory underflow.");
+        assert!(
+            program.pointer > 0,
+            "RuntimeError: Memory underflow at {}",
+            self.source_mapping
+        );
         program.pointer -= self.count;
         program.counter += 1;
     }
 }
 
 impl Right {
-    pub fn new(count: usize) -> Self {
-        Self { count }
+    pub fn new(count: usize, source_mapping: SourceMapping) -> Self {
+        Self {
+            count,
+            source_mapping,
+        }
     }
 }
 
 impl Instruction for Right {
     fn execute(&self, program: &mut Program) -> () {
-        // need to assert no overflow
         program.pointer += self.count;
-        program.counter += 1;
         if program.pointer >= program.memory.len() {
-            program.memory.push(0);
+            match program.memory.try_reserve(1) {
+                Ok(_) => program.memory.push(0),
+                Err(_) => panic!("RuntimeError: Memory overflow at {}", self.source_mapping),
+            };
         }
+        program.counter += 1;
     }
 }
 
@@ -123,7 +140,7 @@ impl Output {
 impl Instruction for Output {
     fn execute(&self, program: &mut Program) -> () {
         for _ in 0..self.count {
-            print!("{}", program.memory[program.pointer]);
+            print!("{}", program.memory[program.pointer] as char);
         }
         program.counter += 1;
     }

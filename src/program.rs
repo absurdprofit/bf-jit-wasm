@@ -60,11 +60,11 @@ impl Program {
                     }
 
                     let instruction: InstructionSet = match token {
-                        tokeniser::Token::Right => {
-                            instruction::Right::new(token_instance_count).into()
+                        tokeniser::Token::Right(source_mapping) => {
+                            instruction::Right::new(token_instance_count, source_mapping).into()
                         }
-                        tokeniser::Token::Left => {
-                            instruction::Left::new(token_instance_count).into()
+                        tokeniser::Token::Left(source_mapping) => {
+                            instruction::Left::new(token_instance_count, source_mapping).into()
                         }
                         tokeniser::Token::Increment => {
                             instruction::Increment::new(token_instance_count as u8).into()
