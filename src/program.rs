@@ -34,14 +34,18 @@ impl Program {
         let mut token_instance_count: usize = 0;
         while let Some(token) = tokens.next() {
             match token {
-                tokeniser::Token::RightJump => {
-                    stack.push(instructions.len());
+                tokeniser::Token::RightJump(source_mapping) => {
+                    stack.push((instructions.len(), source_mapping));
                     instructions.push(instruction::RightJump::new(0).into());
                 }
-                tokeniser::Token::LeftJump => {
+                tokeniser::Token::LeftJump(source_mapping) => {
                     let start = stack.pop();
-                    assert!(start.is_some(), "SYNTAX ERROR: Unbalanced jump.");
-                    let start = start.unwrap();
+                    assert!(
+                        start.is_some(),
+                        "SYNTAX ERROR: Unbalanced jump at {}.",
+                        source_mapping
+                    );
+                    let (start, _) = start.unwrap();
                     instructions[start] = instruction::RightJump::new(instructions.len()).into();
                     instructions.push(instruction::LeftJump::new(start).into());
                 }
@@ -82,7 +86,11 @@ impl Program {
             }
         }
 
-        assert!(stack.len() == 0, "SYNTAX ERROR: Unbalanced jump.");
+        assert!(
+            stack.len() == 0,
+            "SYNTAX ERROR: Unbalanced jump at {}",
+            stack.pop().unwrap().1
+        );
         instructions
     }
 }
