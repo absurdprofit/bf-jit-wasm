@@ -27,10 +27,18 @@ let memory = new WebAssembly.Memory({
   initial: 0,
   maximum: 0
 });
-export async function extern_compile(source_iterator) {
+export async function extern_compile(getByte) {
+  function* sourceGenerator() {
+    let next = getByte();
+    while (next !== undefined) {
+      yield next;
+      next = getByte();
+    }
+  }
+
   try {
     const { instance } = await WebAssembly.instantiateStreaming(
-      new Response(createReadableFromIterable(source_iterator)),
+      new Response(createReadableFromIterable(sourceGenerator)),
       {
         env: {
           memory
