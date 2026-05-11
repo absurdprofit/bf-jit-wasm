@@ -1,4 +1,3 @@
-use js_sys::Iterable;
 use js_sys::JsOption;
 use wasm_bindgen::prelude::*;
 

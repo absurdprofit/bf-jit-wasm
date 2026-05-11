@@ -67,7 +67,7 @@ impl Instruction for Increment {
     }
 
     fn emit(&self) -> Vec<u8> {
-        vec![]
+        vec![0]
     }
 }
 
@@ -84,7 +84,7 @@ impl Instruction for Decrement {
     }
 
     fn emit(&self) -> Vec<u8> {
-        vec![]
+        vec![0]
     }
 }
 
@@ -109,7 +109,7 @@ impl Instruction for Left {
     }
 
     fn emit(&self) -> Vec<u8> {
-        vec![]
+        vec![0]
     }
 }
 
@@ -135,7 +135,7 @@ impl Instruction for Right {
     }
 
     fn emit(&self) -> Vec<u8> {
-        vec![]
+        vec![0]
     }
 }
 
@@ -155,7 +155,7 @@ impl Instruction for Input {
     }
 
     fn emit(&self) -> Vec<u8> {
-        vec![]
+        vec![0]
     }
 }
 
@@ -175,7 +175,7 @@ impl Instruction for Output {
     }
 
     fn emit(&self) -> Vec<u8> {
-        vec![]
+        vec![0]
     }
 }
 
@@ -195,7 +195,7 @@ impl Instruction for RightJump {
     }
 
     fn emit(&self) -> Vec<u8> {
-        vec![]
+        vec![0]
     }
 }
 
@@ -215,7 +215,7 @@ impl Instruction for LeftJump {
     }
 
     fn emit(&self) -> Vec<u8> {
-        vec![]
+        vec![0]
     }
 }
 

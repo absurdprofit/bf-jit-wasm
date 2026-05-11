@@ -8,10 +8,10 @@ export function extern_write(byte) {
 }
 
 function createReadableFromIterable(iterable) {
-  const iterator = Symbol.iterator in iterable ? iterable[Symbol.iterator]() : iterable[Symbol.asyncIterator]();
+  const iterator = iterable[Symbol.iterator]();
   return new ReadableStream({
     async pull(controller) {
-      const { value, done } = await iterator.next();
+      const { value, done } = iterator.next();
       if (done) {
         controller.close();
       }
@@ -37,8 +37,11 @@ export async function extern_compile(getByte) {
   }
 
   try {
+    const headers = {
+      "Content-Type": "application/wasm"
+    };
     const { instance } = await WebAssembly.instantiateStreaming(
-      new Response(createReadableFromIterable(sourceGenerator)),
+      new Response(createReadableFromIterable(sourceGenerator()), { headers }),
       {
         env: {
           memory
