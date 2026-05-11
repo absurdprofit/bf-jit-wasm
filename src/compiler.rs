@@ -13,7 +13,7 @@ pub struct RuntimeCompiler;
 
 pub trait Compiler {
     // TODO: figure out if we what the type of a WASM instance JS object would be.
-    fn compile(source: impl Iterator<Item = u8>) -> Result<(), CompilerError>;
+    fn compile(source: impl Iterator<Item = Vec<u8>>) -> Result<(), CompilerError>;
 }
 
 #[wasm_bindgen(module = "imports.js")]
@@ -29,7 +29,7 @@ impl Compiler for RuntimeCompiler {
     // source is not a full WASM binary, it is simply the concatenation of emit_wasm results from instructions.
     // compilation could failed, let's handle failures by matching the error ID.
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
-    fn compile(mut source: impl Iterator<Item = u8>) -> Result<(), CompilerError> {
+    fn compile(mut source: impl Iterator<Item = Vec<u8>>) -> Result<(), CompilerError> {
         // TODO: add module preamble
         // TODO: add program bytes
         let mut get_byte =

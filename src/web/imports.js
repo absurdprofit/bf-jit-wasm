@@ -10,14 +10,11 @@ export function extern_write(byte) {
 function createReadableFromIterable(iterable) {
   const iterator = iterable[Symbol.iterator]();
   return new ReadableStream({
-    async pull(controller) {
-      const { value, done } = iterator.next();
-      if (done) {
-        controller.close();
+    start(controller) {
+      for (let byte of iterator) {
+        controller.enqueue(byte);
       }
-      else {
-        controller.enqueue(value);
-      }
+      controller.close();
     },
   });
 }
@@ -27,12 +24,12 @@ let memory = new WebAssembly.Memory({
   initial: 0,
   maximum: 0
 });
-export async function extern_compile(getByte) {
+export async function extern_compile(getChunk) {
   function* sourceGenerator() {
-    let next = getByte();
+    let next = getChunk();
     while (next !== undefined) {
       yield next;
-      next = getByte();
+      next = getChunk();
     }
   }
 
@@ -48,7 +45,8 @@ export async function extern_compile(getByte) {
         }
       }
     );
-    return instance;
+    const { run } = instance.exports;
+    return run;
   } catch (e) {
     switch (e.name) {
       case "TypeError":

@@ -19,7 +19,6 @@ impl Program {
             instructions: Self::collect_tokens(tokens),
         }
     }
-
     pub fn run(&mut self) {
         while self.counter < self.instructions.len() {
             let instruction = &self.instructions[self.counter].clone();
