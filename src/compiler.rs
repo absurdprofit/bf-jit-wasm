@@ -9,6 +9,28 @@ use futures::FutureExt;
 use js_sys::{Function, JsOption, Promise, futures::JsFuture};
 use wasm_bindgen::prelude::*;
 
+struct LEB128 {
+    inner: Vec<u8>,
+}
+
+impl From<usize> for LEB128 {
+    fn from(mut value: usize) -> Self {
+        let mut inner = vec![];
+        loop {
+            let mut byte = value & 0x7f;
+            value = value >> 7;
+            if value != 0 {
+                byte = value | 0x80;
+            }
+            inner.push(byte as u8);
+            if value == 0 {
+                break;
+            }
+        }
+        Self { inner }
+    }
+}
+
 pub enum RuntimeCompilerError {
     TypeError,
     CompileError,
@@ -236,13 +258,11 @@ impl Compiler for RuntimeCompiler {
         let section_code_size = func_body_size + 2; // function body size + local decl count size
         let mut source = std::iter::once(HEADER.to_vec())
             .chain(std::iter::once(
-                Vec::from(&[0x08]), // section_code_size.to_le_bytes().to_vec(), // section size
+                LEB128::from(section_code_size).inner, // section size
             ))
             .chain(std::iter::once(Vec::from(&[0x01]))) // num functions
             // function body 0
-            .chain(std::iter::once(
-                Vec::from(&[0x06]), // func_body_size.to_le_bytes().to_vec()
-            )) // func body size
+            .chain(std::iter::once(LEB128::from(func_body_size).inner)) // func body size
             .chain(std::iter::once(Vec::from(&[0x00]))) // local decl count
             .chain(vec![source])
             .chain(std::iter::once(FOOTER.to_vec()));
