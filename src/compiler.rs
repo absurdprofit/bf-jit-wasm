@@ -1,10 +1,14 @@
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
+
 use enum_dispatch::enum_dispatch;
 #[cfg(target_arch = "wasm32")]
-use js_sys::Promise;
-use js_sys::{Function, JsOption};
+use js_sys::{Function, JsOption, Promise, futures::JsFuture};
 use wasm_bindgen::prelude::*;
 
-pub enum CompilerError {
+pub enum RuntimeCompilerError {
     TypeError,
     CompileError,
     LinkError,
@@ -15,9 +19,11 @@ pub enum CompilerError {
 pub struct RuntimeCompiler;
 
 pub trait Compiler {
-    // TODO: Replace Function in return type with an (abstract) opaque type wrapped in a future.
-    // Let's call it a Runnable, it should have a method like run(&self) -> ().
-    fn compile(source: impl Iterator<Item = Vec<u8>>) -> Result<Promise<Function>, CompilerError>;
+    type CompileFuture: Future<Output = Result<RuntimeCompilerTarget, RuntimeCompilerError>>;
+
+    fn compile(
+        source: impl Iterator<Item = Vec<u8>>,
+    ) -> Result<Self::CompileFuture, RuntimeCompilerError>;
 }
 
 #[enum_dispatch]
@@ -34,18 +40,50 @@ impl Runnable for WebAssembly {
 }
 
 #[enum_dispatch(Runnable)]
-enum RuntimeCompilerTarget {
+pub enum RuntimeCompilerTarget {
     WebAssembly,
+}
+
+pub struct RuntimeCompilerTargetFuture {
+    inner: JsFuture<Function>,
+}
+
+impl Future for RuntimeCompilerTargetFuture {
+    type Output = Result<RuntimeCompilerTarget, RuntimeCompilerError>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        let pinned = Pin::new(&mut self.inner);
+        pinned.poll(cx).map(|result| {
+            result
+                .map(|function| WebAssembly(function).into())
+                .map_err(|js_value| js_value.as_f64().into())
+        })
+    }
 }
 
 #[wasm_bindgen(module = "imports.js")]
 extern "C" {
-    // TODO: define a streaming compiler interface
-    // TODO: return a Ok(Future) that can be polled by the program.
     #[wasm_bindgen(catch)]
     fn extern_compile(
         get_chunk: &mut dyn FnMut() -> JsOption<JsValue>,
     ) -> Result<Promise<Function>, JsValue>;
+}
+
+#[cfg(target_arch = "wasm32")]
+impl From<Option<f64>> for RuntimeCompilerError {
+    fn from(value: Option<f64>) -> Self {
+        if let Some(error) = value {
+            match error {
+                0.0 => RuntimeCompilerError::TypeError,
+                1.0 => RuntimeCompilerError::CompileError,
+                2.0 => RuntimeCompilerError::LinkError,
+                3.0 => RuntimeCompilerError::RuntimeError,
+                _ => RuntimeCompilerError::UnknownDefect,
+            }
+        } else {
+            RuntimeCompilerError::UnknownDefect
+        }
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -57,34 +95,26 @@ const PREAMBLE: &[u8] = &[
 
 #[cfg(target_arch = "wasm32")]
 impl Compiler for RuntimeCompiler {
+    type CompileFuture = RuntimeCompilerTargetFuture;
     // source is not a full WASM binary, it is simply the concatenation of emit_wasm results from instructions.
-    // compilation could failed, let's handle failures by matching the error ID.
+    // compilation could fail, let's handle failures by matching the error ID.
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
     fn compile(
         mut source: impl Iterator<Item = Vec<u8>>,
-    ) -> Result<Promise<Function>, CompilerError> {
+    ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
         // TODO: add module preamble
         // TODO: add program bytes
         let mut get_chunk =
             || JsOption::from_option(source.next().map(|value| JsValue::from(value)));
 
         match extern_compile(&mut get_chunk) {
-            Ok(result) => Ok(result),
-            Err(js_value) => {
-                let compiler_error = if let Some(error) = js_value.as_f64() {
-                    match error {
-                        0.0 => CompilerError::TypeError,
-                        1.0 => CompilerError::CompileError,
-                        2.0 => CompilerError::LinkError,
-                        3.0 => CompilerError::RuntimeError,
-                        _ => CompilerError::UnknownDefect,
-                    }
-                } else {
-                    CompilerError::UnknownDefect
-                };
-
-                Err(compiler_error)
+            Ok(result) => {
+                // Ok(result.into_future());
+                Ok(RuntimeCompilerTargetFuture {
+                    inner: result.into_future(),
+                })
             }
+            Err(js_value) => Err(js_value.as_f64().into()),
         }
     }
 }
