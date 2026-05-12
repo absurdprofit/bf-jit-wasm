@@ -1,4 +1,9 @@
+use std::{pin::Pin, task::Context};
+
+use futures::task::noop_waker;
+
 use crate::{
+    compiler::{Compiler, RuntimeCompiler, RuntimeCompilerError, RuntimeCompilerTargetFuture},
     instruction::{self, Instruction, InstructionSet},
     tokeniser::{self},
 };
@@ -8,18 +13,32 @@ pub struct Program {
     pub memory: Vec<u8>,
     pub pointer: usize,
     instructions: Vec<InstructionSet>,
+    compile_target: Result<RuntimeCompilerTargetFuture, RuntimeCompilerError>,
 }
 
 impl Program {
     pub fn new(tokens: impl Iterator<Item = tokeniser::Token>) -> Self {
+        let instructions = Self::collect_tokens(tokens);
         Self {
             counter: 0,
             memory: vec![0],
             pointer: 0,
-            instructions: Self::collect_tokens(tokens),
+            compile_target: RuntimeCompiler::compile(
+                instructions.iter().map(|instruction| instruction.emit()),
+            ),
+            instructions,
         }
     }
+
     pub fn run(&mut self) {
+        let waker = noop_waker();
+
+        let mut cx = Context::from_waker(&waker);
+        let pinned = if let Ok(future) = &mut self.compile_target {
+            Some(Pin::new(future))
+        } else {
+            None
+        };
         while self.counter < self.instructions.len() {
             let instruction = &self.instructions[self.counter].clone();
             instruction.execute(self);
