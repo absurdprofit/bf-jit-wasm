@@ -1,9 +1,12 @@
-use std::{pin::Pin, task::Context};
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use futures::task::noop_waker;
 
 use crate::{
-    compiler::{Compiler, RuntimeCompiler, RuntimeCompilerError, RuntimeCompilerTargetFuture},
+    compiler::{Compiler, Runnable, RuntimeCompiler},
     instruction::{self, Instruction, InstructionSet},
     tokeniser::{self},
 };
@@ -13,28 +16,28 @@ pub struct Program {
     pub memory: Vec<u8>,
     pub pointer: usize,
     instructions: Vec<InstructionSet>,
-    compile_target: Result<RuntimeCompilerTargetFuture, RuntimeCompilerError>,
 }
 
 impl Program {
     pub fn new(tokens: impl Iterator<Item = tokeniser::Token>) -> Self {
-        let instructions = Self::collect_tokens(tokens);
         Self {
             counter: 0,
             memory: vec![0],
             pointer: 0,
-            compile_target: RuntimeCompiler::compile(
-                instructions.iter().map(|instruction| instruction.emit()),
-            ),
-            instructions,
+            instructions: Self::collect_tokens(tokens),
         }
     }
 
     pub fn run(&mut self) {
+        let mut compile_target = RuntimeCompiler::compile(
+            self.instructions
+                .iter()
+                .map(|instruction| instruction.emit()),
+        );
         let waker = noop_waker();
 
-        let mut cx = Context::from_waker(&waker);
-        let pinned = if let Ok(future) = &mut self.compile_target {
+        let mut context = Context::from_waker(&waker);
+        let mut pinned = if let Ok(future) = &mut compile_target {
             Some(Pin::new(future))
         } else {
             None
@@ -42,6 +45,18 @@ impl Program {
         while self.counter < self.instructions.len() {
             let instruction = &self.instructions[self.counter].clone();
             instruction.execute(self);
+            if let Some(ref mut pinned) = pinned {
+                match pinned.as_mut().poll(&mut context) {
+                    Poll::Ready(result) => match result {
+                        Ok(runnable) => {
+                            runnable.run();
+                            break;
+                        }
+                        Err(_) => continue,
+                    },
+                    Poll::Pending => continue,
+                }
+            }
         }
     }
 

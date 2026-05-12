@@ -31,7 +31,7 @@ pub trait Runnable {
     fn run(&self) -> ();
 }
 
-struct WebAssembly(Function);
+pub struct WebAssembly(Function);
 
 impl Runnable for WebAssembly {
     fn run(&self) -> () {
