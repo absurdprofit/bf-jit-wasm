@@ -28,7 +28,7 @@ impl Program {
         }
     }
 
-    pub fn run(&mut self) {
+    pub async fn run(&mut self) {
         let mut compile_target = RuntimeCompiler::compile(
             self.instructions
                 .iter()
@@ -45,6 +45,7 @@ impl Program {
         while self.counter < self.instructions.len() {
             let instruction = &self.instructions[self.counter].clone();
             instruction.execute(self);
+            RuntimeCompiler::yield_now().await;
             if let Some(ref mut pinned) = pinned {
                 match pinned.as_mut().poll(&mut context) {
                     Poll::Ready(result) => match result {

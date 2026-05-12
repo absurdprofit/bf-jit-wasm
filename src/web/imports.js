@@ -42,6 +42,10 @@ export async function extern_compile(getChunk) {
       {
         env: {
           memory
+        },
+        "imports.js": {
+          extern_read,
+          extern_write,
         }
       }
     );

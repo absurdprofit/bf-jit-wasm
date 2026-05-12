@@ -13,9 +13,9 @@ pub fn init_panic_hook() {
 }
 
 #[wasm_bindgen]
-pub fn run(source: &str, path: &str) {
+pub async fn run(source: &str, path: &str) {
     #[cfg(target_arch = "wasm32")]
     init_panic_hook();
 
-    Program::new(tokenise(source, path)).run();
+    Program::new(tokenise(source, path)).run().await;
 }

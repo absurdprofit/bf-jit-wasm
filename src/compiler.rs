@@ -5,6 +5,7 @@ use std::{
 
 use enum_dispatch::enum_dispatch;
 #[cfg(target_arch = "wasm32")]
+use futures::FutureExt;
 use js_sys::{Function, JsOption, Promise, futures::JsFuture};
 use wasm_bindgen::prelude::*;
 
@@ -24,6 +25,8 @@ pub trait Compiler {
     fn compile(
         source: impl Iterator<Item = Vec<u8>>,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError>;
+
+    fn yield_now() -> impl Future<Output = ()>;
 }
 
 #[enum_dispatch]
@@ -45,12 +48,16 @@ pub enum RuntimeCompilerTarget {
 }
 
 pub struct RuntimeCompilerTargetFuture {
+    #[cfg(not(target_arch = "wasm32"))]
+    inner: (),
+    #[cfg(target_arch = "wasm32")]
     inner: JsFuture<Function>,
 }
 
 impl Future for RuntimeCompilerTargetFuture {
     type Output = Result<RuntimeCompilerTarget, RuntimeCompilerError>;
 
+    #[cfg(target_arch = "wasm32")]
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         let pinned = Pin::new(&mut self.inner);
         pinned.poll(cx).map(|result| {
@@ -59,8 +66,14 @@ impl Future for RuntimeCompilerTargetFuture {
                 .map_err(|js_value| js_value.as_f64().into())
         })
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
+        Poll::Ready(Err(RuntimeCompilerError::UnknownDefect))
+    }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(module = "imports.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
@@ -86,11 +99,127 @@ impl From<Option<f64>> for RuntimeCompilerError {
     }
 }
 
+/*
+
+(module
+
+  (import "env" "memory"
+    (memory 1)
+  )
+
+  (import "imports.js" "extern_read"
+    (func $extern_read
+      (result i32)
+    )
+  )
+
+  (import "imports.js" "extern_write"
+    (func $extern_write
+      (param i32)
+    )
+  )
+
+  (func (export "run")
+    <emit>
+))
+
+*/
 #[cfg(target_arch = "wasm32")]
-const PREAMBLE: &[u8] = &[
-    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7f, 0x03,
-    0x02, 0x01, 0x00, 0x07, 0x07, 0x01, 0x03, 0x72, 0x75, 0x6e, 0x00, 0x00, 0x0a, 0x06, 0x01, 0x04,
-    0x00, 0x41, 0x2a, 0x0b, 0x00, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x02, 0x03, 0x01, 0x00, 0x00,
+const HEADER: &[u8] = &[
+    0x00, 0x61, 0x73, 0x6d, // WASM_BINARY_MAGIC
+    0x01, 0x00, 0x00, 0x00, // WASM_BINARY_VERSION
+    // section "Type" (1)
+    0x01, // section code
+    0x0c, // section size
+    0x03, // num types
+    // func type 0
+    0x60, // func
+    0x00, // num params
+    0x01, // num results
+    0x7f, // i32
+    // func type 1
+    0x60, // func
+    0x01, // num params
+    0x7f, // i32
+    0x00, // num results
+    // func type 2
+    0x60, // func
+    0x00, // num params
+    0x00, // num results
+    // section "Import" (2)
+    0x02, // section code
+    0x42, // section size
+    0x03, // num imports
+    // import header 0
+    0x03, // string length
+    0x65, 0x6e, 0x76, // env  // import module name
+    0x06, // string length
+    0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, // memory  // import field name
+    0x02, // import kind
+    0x00, // limits: flags
+    0x01, // limits: initial
+    // import header 1
+    0x0a, // string length
+    0x69, 0x6d, 0x70, 0x6f, 0x72, 0x74, 0x73, 0x2e, 0x6a,
+    0x73, // imports.js  // import module name
+    0x0b, // string length
+    0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x5f, 0x72, 0x65, 0x61,
+    0x64, // extern_read  // import field name
+    0x00, // import kind
+    0x00, // import signature index
+    // import header 2
+    0x0a, // string length
+    0x69, 0x6d, 0x70, 0x6f, 0x72, 0x74, 0x73, 0x2e, 0x6a,
+    0x73, // imports.js  // import module name
+    0x0c, // string length
+    0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x5f, 0x77, 0x72, 0x69, 0x74,
+    0x65, // extern_write  // import field name
+    0x00, // import kind
+    0x01, // import signature index
+    // section "Function" (3)
+    0x03, // section code
+    0x02, // section size
+    0x01, // num functions
+    0x02, // function 0 signature index
+    // section "Export" (7)
+    0x07, // section code
+    0x07, // section size
+    0x01, // num exports
+    0x03, // string length
+    0x72, 0x75, 0x6e, // run  // export name
+    0x00, // export kind
+    0x02, // export func index
+    // section "Code" (10)
+    0x0a, // section code
+];
+
+#[cfg(target_arch = "wasm32")]
+const FOOTER: &[u8] = &[
+    // section "name"
+    0x00, // section code
+    0x2c, // section size
+    0x04, // string length
+    0x6e, 0x61, 0x6d, 0x65, // name  // custom section name
+    0x01, // name subsection type
+    0x1c, // subsection size
+    0x02, // num names
+    0x00, // elem index
+    0x0b, // string length
+    0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x5f, 0x72, 0x65, 0x61,
+    0x64, // extern_read  // elem name 0
+    0x01, // elem index
+    0x0c, // string length
+    0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x5f, 0x77, 0x72, 0x69, 0x74,
+    0x65, // extern_write  // elem name 1
+    0x02, // local name type
+    0x07, // subsection size
+    0x03, // num functions
+    0x00, // function index
+    0x00, // num locals
+    0x01, // function index
+    0x00, // num locals
+    0x02, // function index
+    0x00, // num locals
 ];
 
 #[cfg(target_arch = "wasm32")]
@@ -100,21 +229,35 @@ impl Compiler for RuntimeCompiler {
     // compilation could fail, let's handle failures by matching the error ID.
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
     fn compile(
-        mut source: impl Iterator<Item = Vec<u8>>,
+        source: impl Iterator<Item = Vec<u8>>,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
-        // TODO: add module preamble
-        // TODO: add program bytes
+        let source = Vec::from_iter(source.flatten());
+        let func_body_size = source.len() + 1;
+        let section_code_size = func_body_size + 2; // function body size + local decl count size
+        let mut source = std::iter::once(HEADER.to_vec())
+            .chain(std::iter::once(
+                Vec::from(&[0x08]), // section_code_size.to_le_bytes().to_vec(), // section size
+            ))
+            .chain(std::iter::once(Vec::from(&[0x01]))) // num functions
+            // function body 0
+            .chain(std::iter::once(
+                Vec::from(&[0x06]), // func_body_size.to_le_bytes().to_vec()
+            )) // func body size
+            .chain(std::iter::once(Vec::from(&[0x00]))) // local decl count
+            .chain(vec![source])
+            .chain(std::iter::once(FOOTER.to_vec()));
         let mut get_chunk =
             || JsOption::from_option(source.next().map(|value| JsValue::from(value)));
 
         match extern_compile(&mut get_chunk) {
-            Ok(result) => {
-                // Ok(result.into_future());
-                Ok(RuntimeCompilerTargetFuture {
-                    inner: result.into_future(),
-                })
-            }
+            Ok(result) => Ok(RuntimeCompilerTargetFuture {
+                inner: result.into_future(),
+            }),
             Err(js_value) => Err(js_value.as_f64().into()),
         }
+    }
+
+    fn yield_now() -> impl Future<Output = ()> {
+        JsFuture::from(Promise::resolve(&JsValue::NULL)).map(|_| ())
     }
 }
