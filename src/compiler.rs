@@ -13,8 +13,8 @@ pub struct LEB128 {
     pub inner: Vec<u8>,
 }
 
-impl From<usize> for LEB128 {
-    fn from(mut value: usize) -> Self {
+impl From<u32> for LEB128 {
+    fn from(mut value: u32) -> Self {
         let mut inner = vec![];
         loop {
             let mut byte = value & 0x7f;
@@ -35,8 +35,8 @@ pub struct SLEB128 {
     pub inner: Vec<u8>,
 }
 
-impl From<isize> for SLEB128 {
-    fn from(mut value: isize) -> Self {
+impl From<i32> for SLEB128 {
+    fn from(mut value: i32) -> Self {
         let mut inner = Vec::new();
 
         loop {
@@ -291,13 +291,28 @@ impl Compiler for RuntimeCompiler {
         let source = Vec::from_iter(source.flatten());
         let func_body_size = source.len() + 3 + 1; // source size + local decl size + end opcode size
         let section_code_size = func_body_size + 2; // function body size + local decl count size
-        let mut source = std::iter::once(HEADER.to_vec())
+        let mut source: std::iter::Chain<
+            std::iter::Chain<
+                std::iter::Chain<
+                    std::iter::Chain<
+                        std::iter::Chain<
+                            std::iter::Chain<std::iter::Once<Vec<u8>>, std::iter::Once<Vec<u8>>>,
+                            std::iter::Once<Vec<u8>>,
+                        >,
+                        std::iter::Once<Vec<u8>>,
+                    >,
+                    std::iter::Once<Vec<u8>>,
+                >,
+                std::vec::IntoIter<Vec<u8>>,
+            >,
+            std::iter::Once<Vec<u8>>,
+        > = std::iter::once(HEADER.to_vec())
             .chain(std::iter::once(
-                LEB128::from(section_code_size).inner, // section size
+                LEB128::from(section_code_size as u32).inner, // section size
             ))
             .chain(std::iter::once(Vec::from(&[0x01]))) // num functions
             // function body 0
-            .chain(std::iter::once(LEB128::from(func_body_size).inner)) // func body size
+            .chain(std::iter::once(LEB128::from(func_body_size as u32).inner)) // func body size
             .chain(std::iter::once(Vec::from(&[
                 0x01, // local decl count
                 0x01, // local type count

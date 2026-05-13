@@ -73,14 +73,14 @@ impl Instruction for Increment {
             0x41, // i32.const
         ];
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory pointer into stack
         result.push(0x02); // alignment
@@ -97,7 +97,7 @@ impl Instruction for Increment {
         result.push(0x00); // load offset
         result.push(0x41); // i32.const
         result.append(
-            &mut LEB128::from(self.amount as usize).inner, // i32 literal
+            &mut LEB128::from(self.amount as u32).inner, // i32 literal
         );
         result.push(0x6a); // i32.add add cell value and increment amount
         result.push(0x3a); // i32.store8
@@ -105,11 +105,11 @@ impl Instruction for Increment {
         result.push(0x00); // store offset
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory.counter into stack
         result.push(0x02); // alignment
@@ -144,14 +144,14 @@ impl Instruction for Decrement {
             0x41, // i32.const
         ];
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory pointer into stack
         result.push(0x02); // alignment
@@ -168,7 +168,7 @@ impl Instruction for Decrement {
         result.push(0x00); // load offset
         result.push(0x41); // i32.const
         result.append(
-            &mut LEB128::from(self.amount as usize).inner, // i32 literal
+            &mut LEB128::from(self.amount as u32).inner, // i32 literal
         );
         result.push(0x6b); // i32.sub sub cell value and decrement amount
         result.push(0x3a); // i32.store8
@@ -176,11 +176,11 @@ impl Instruction for Decrement {
         result.push(0x00); // store offset
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory.counter into stack
         result.push(0x02); // alignment
@@ -269,14 +269,14 @@ impl Instruction for Input {
             0x41, // i32.const
         ];
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory pointer into stack
         result.push(0x02); // alignment
@@ -289,11 +289,11 @@ impl Instruction for Input {
         result.push(0x00); // store offset
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory.counter into stack
         result.push(0x02); // alignment
@@ -331,14 +331,14 @@ impl Instruction for Output {
             0x41, // i32.const
         ];
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory pointer into stack
         result.push(0x02); // alignment
@@ -351,11 +351,11 @@ impl Instruction for Output {
         result.push(0x01); // function index (extern_write)
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x41); // i32.const
         result.append(
-            &mut SLEB128::from(program as isize).inner, // i32 literal
+            &mut SLEB128::from(program as i32).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory.counter into stack
         result.push(0x02); // alignment
@@ -388,7 +388,58 @@ impl Instruction for RightJump {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
+        result.push(0x21); // local.set
+        result.push(0x00); // local index 0 store cell address in local variable 0
+        result.push(0x02); // block
+        result.push(0x40); // void
+        result.push(0x03); // loop
+        result.push(0x40); // void
+        result.push(0x20); // local.get
+        result.push(0x00); // local index
+        result.push(0x2d); // i32.load8_u
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        result.push(0x45); // i32.eqz
+        result.push(0x0d); // br_if
+        result.push(0x01); // break depth
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory.counter into stack
+        result.push(0x02); // alignment
+        result.push(0x04); // load offset
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal
+        result.push(0x6a); // i32.add increment counter
+        // store incremented counter back to memory
+        result.push(0x36); // i32.store
+        result.push(0x00); // alignment
+        result.push(0x04); // store offset
+
+        result
     }
 }
 
@@ -408,7 +459,33 @@ impl Instruction for LeftJump {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        let program = program as *const Program;
+        let mut result = vec![
+            0x0c, // br
+            0x00, // break depth
+            0x0b, // end loop
+            0x0b, // end block
+        ];
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory.counter into stack
+        result.push(0x02); // alignment
+        result.push(0x04); // load offset
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal
+        result.push(0x6a); // i32.add increment counter
+        // store incremented counter back to memory
+        result.push(0x36); // i32.store
+        result.push(0x00); // alignment
+        result.push(0x04); // store offset
+
+        result
     }
 }
 
