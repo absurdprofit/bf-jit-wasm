@@ -14,8 +14,8 @@ use crate::{
 #[repr(C)]
 pub struct Program {
     pub pointer: usize,
-    pub memory: Vec<u8>,
     pub counter: usize,
+    pub memory: Vec<u8>,
     instructions: Vec<InstructionSet>,
 }
 

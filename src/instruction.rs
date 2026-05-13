@@ -1,7 +1,7 @@
 use enum_dispatch::enum_dispatch;
 
 use crate::{
-    compiler::LEB128,
+    compiler::{LEB128, SLEB128},
     io::{IO, RuntimeIO},
     program::Program,
     tokeniser::{self, SourceMapping},
@@ -68,29 +68,30 @@ impl Instruction for Increment {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        let memory = &program.memory as *const Vec<u8>;
         let program = program as *const Program;
         let mut result: Vec<u8> = vec![
             0x41, // i32.const
         ];
         result.append(
-            &mut LEB128::from(program as usize).inner, // i32 literal
+            &mut SLEB128::from(program as isize).inner, // i32 literal
         );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
         result.push(0x41); // i32.const
         result.append(
-            &mut LEB128::from(memory as usize).inner, // i32 literal
+            &mut SLEB128::from(program as isize).inner, // i32 literal
         );
         result.push(0x28); // i32.load load memory pointer into stack
         result.push(0x02); // alignment
-        result.push(0x00); // load offset
+        result.push(0x0c); // load offset
         result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
         result.push(0x21); // local.set
         result.push(0x00); // local index 0 store cell address in local variable 0
         result.push(0x20); // local.get
-        result.push(0x00); // local index 0
+        result.push(0x00); // local index 0 load cell address into stack
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 load cell address into stack
         result.push(0x2d); // i32.load8_u load cell into stack
         result.push(0x00); // alignment
         result.push(0x00); // load offset
@@ -99,11 +100,27 @@ impl Instruction for Increment {
             &mut LEB128::from(self.amount as usize).inner, // i32 literal
         );
         result.push(0x6a); // i32.add add cell value and increment amount
-        result.push(0x20); // local.get
-        result.push(0x00); // local index 0
         result.push(0x3a); // i32.store8
         result.push(0x00); // alignment
         result.push(0x00); // store offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory.counter into stack
+        result.push(0x02); // alignment
+        result.push(0x04); // load offset
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal
+        result.push(0x6a); // i32.add increment counter
+        // store incremented counter back to memory
+        result.push(0x36); // i32.store
+        result.push(0x00); // alignment
+        result.push(0x04); // store offset
 
         result
     }
@@ -122,7 +139,61 @@ impl Instruction for Decrement {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
+        result.push(0x21); // local.set
+        result.push(0x00); // local index 0 store cell address in local variable 0
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 load cell address into stack
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 load cell address into stack
+        result.push(0x2d); // i32.load8_u load cell into stack
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.amount as usize).inner, // i32 literal
+        );
+        result.push(0x6b); // i32.sub sub cell value and decrement amount
+        result.push(0x3a); // i32.store8
+        result.push(0x00); // alignment
+        result.push(0x00); // store offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory.counter into stack
+        result.push(0x02); // alignment
+        result.push(0x04); // load offset
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal
+        result.push(0x6a); // i32.add increment counter
+        // store incremented counter back to memory
+        result.push(0x36); // i32.store
+        result.push(0x00); // alignment
+        result.push(0x04); // store offset
+
+        result
     }
 }
 
@@ -193,7 +264,49 @@ impl Instruction for Input {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
+        result.push(0x10); // call
+        result.push(0x00); // function index (extern_read)
+        result.push(0x3a); // i32.store8
+        result.push(0x00); // alignment
+        result.push(0x00); // store offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory.counter into stack
+        result.push(0x02); // alignment
+        result.push(0x04); // load offset
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal
+        result.push(0x6a); // i32.add increment counter
+        // store incremented counter back to memory
+        result.push(0x36); // i32.store
+        result.push(0x00); // alignment
+        result.push(0x04); // store offset
+
+        result
     }
 }
 
@@ -213,7 +326,49 @@ impl Instruction for Output {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
+        result.push(0x2d); // i32.load8_u load cell into stack
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        result.push(0x10); // call
+        result.push(0x01); // function index (extern_write)
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as isize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory.counter into stack
+        result.push(0x02); // alignment
+        result.push(0x04); // load offset
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal
+        result.push(0x6a); // i32.add increment counter
+        // store incremented counter back to memory
+        result.push(0x36); // i32.store
+        result.push(0x00); // alignment
+        result.push(0x04); // store offset
+
+        result
     }
 }
 

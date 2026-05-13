@@ -20,13 +20,43 @@ impl From<usize> for LEB128 {
             let mut byte = value & 0x7f;
             value = value >> 7;
             if value != 0 {
-                byte = value | 0x80;
+                byte |= 0x80;
             }
             inner.push(byte as u8);
             if value == 0 {
                 break;
             }
         }
+        Self { inner }
+    }
+}
+
+pub struct SLEB128 {
+    pub inner: Vec<u8>,
+}
+
+impl From<isize> for SLEB128 {
+    fn from(mut value: isize) -> Self {
+        let mut inner = Vec::new();
+
+        loop {
+            let byte = (value & 0x7f) as u8;
+
+            // arithmetic shift preserves sign
+            value >>= 7;
+
+            let sign_bit_set = (byte & 0x40) != 0;
+
+            let done = (value == 0 && !sign_bit_set) || (value == -1 && sign_bit_set);
+
+            if done {
+                inner.push(byte);
+                break;
+            } else {
+                inner.push(byte | 0x80);
+            }
+        }
+
         Self { inner }
     }
 }
@@ -142,6 +172,7 @@ impl From<Option<f64>> for RuntimeCompilerError {
   )
 
   (func (export "run")
+    (local $cell_addr i32)
     <emit>
 ))
 
@@ -217,9 +248,10 @@ const HEADER: &[u8] = &[
 
 #[cfg(target_arch = "wasm32")]
 const FOOTER: &[u8] = &[
+    0x0b, // end
     // section "name"
     0x00, // section code
-    0x2c, // section size
+    0x37, // section size
     0x04, // string length
     0x6e, 0x61, 0x6d, 0x65, // name  // custom section name
     0x01, // name subsection type
@@ -234,14 +266,17 @@ const FOOTER: &[u8] = &[
     0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x5f, 0x77, 0x72, 0x69, 0x74,
     0x65, // extern_write  // elem name 1
     0x02, // local name type
-    0x07, // subsection size
+    0x12, // subsection size
     0x03, // num functions
     0x00, // function index
     0x00, // num locals
     0x01, // function index
     0x00, // num locals
     0x02, // function index
-    0x00, // num locals
+    0x01, // num locals
+    0x00, // local index
+    0x09, // string length
+    0x63, 0x65, 0x6c, 0x6c, 0x5f, 0x61, 0x64, 0x64, 0x72, // cell_addr  // local name 0
 ];
 
 #[cfg(target_arch = "wasm32")]
@@ -254,7 +289,7 @@ impl Compiler for RuntimeCompiler {
         source: impl Iterator<Item = Vec<u8>>,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
         let source = Vec::from_iter(source.flatten());
-        let func_body_size = source.len() + 1;
+        let func_body_size = source.len() + 3 + 1; // source size + local decl size + end opcode size
         let section_code_size = func_body_size + 2; // function body size + local decl count size
         let mut source = std::iter::once(HEADER.to_vec())
             .chain(std::iter::once(

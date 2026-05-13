@@ -4,7 +4,7 @@ export function extern_read() {
 }
 
 export function extern_write(byte) {
-  console.log(String.fromCharCode(byte));
+  console.log(byte); // TODO: wrap byte in String.fromCharCode
 }
 
 function createReadableFromIterable(iterable) {
@@ -50,7 +50,7 @@ export async function extern_compile(getChunk) {
       }
     );
     const { run } = instance.exports;
-    return run;
+    return () => run(); // TODO: just return run
   } catch (e) {
     switch (e.name) {
       case "TypeError":
