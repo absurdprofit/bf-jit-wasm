@@ -11,10 +11,11 @@ use crate::{
     tokeniser::{self},
 };
 
+#[repr(C)]
 pub struct Program {
-    pub counter: usize,
-    pub memory: Vec<u8>,
     pub pointer: usize,
+    pub memory: Vec<u8>,
+    pub counter: usize,
     instructions: Vec<InstructionSet>,
 }
 
@@ -32,7 +33,7 @@ impl Program {
         let mut compile_target = RuntimeCompiler::compile(
             self.instructions
                 .iter()
-                .map(|instruction| instruction.emit()),
+                .map(|instruction| instruction.emit(self)),
         );
         let waker = noop_waker();
 

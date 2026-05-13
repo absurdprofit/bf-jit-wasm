@@ -9,8 +9,8 @@ use futures::FutureExt;
 use js_sys::{Function, JsOption, Promise, futures::JsFuture};
 use wasm_bindgen::prelude::*;
 
-struct LEB128 {
-    inner: Vec<u8>,
+pub struct LEB128 {
+    pub inner: Vec<u8>,
 }
 
 impl From<usize> for LEB128 {
@@ -263,7 +263,11 @@ impl Compiler for RuntimeCompiler {
             .chain(std::iter::once(Vec::from(&[0x01]))) // num functions
             // function body 0
             .chain(std::iter::once(LEB128::from(func_body_size).inner)) // func body size
-            .chain(std::iter::once(Vec::from(&[0x00]))) // local decl count
+            .chain(std::iter::once(Vec::from(&[
+                0x01, // local decl count
+                0x01, // local type count
+                0x7f, // i32
+            ])))
             .chain(vec![source])
             .chain(std::iter::once(FOOTER.to_vec()));
         let mut get_chunk =

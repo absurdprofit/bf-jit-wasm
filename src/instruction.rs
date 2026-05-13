@@ -1,6 +1,7 @@
 use enum_dispatch::enum_dispatch;
 
 use crate::{
+    compiler::LEB128,
     io::{IO, RuntimeIO},
     program::Program,
     tokeniser::{self, SourceMapping},
@@ -51,7 +52,7 @@ pub struct LeftJump {
 #[enum_dispatch]
 pub trait Instruction {
     fn execute(&self, program: &mut Program) -> ();
-    fn emit(&self) -> Vec<u8>;
+    fn emit(&self, program: &Program) -> Vec<u8>;
 }
 
 impl Increment {
@@ -66,8 +67,45 @@ impl Instruction for Increment {
         program.counter += 1;
     }
 
-    fn emit(&self) -> Vec<u8> {
-        vec![]
+    fn emit(&self, program: &Program) -> Vec<u8> {
+        let memory = &program.memory as *const Vec<u8>;
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut LEB128::from(program as usize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(memory as usize).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
+        result.push(0x21); // local.set
+        result.push(0x00); // local index 0 store cell address in local variable 0
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0
+        result.push(0x2d); // i32.load8_u load cell into stack
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.amount as usize).inner, // i32 literal
+        );
+        result.push(0x6a); // i32.add add cell value and increment amount
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0
+        result.push(0x3a); // i32.store8
+        result.push(0x00); // alignment
+        result.push(0x00); // store offset
+
+        result
     }
 }
 
@@ -83,7 +121,7 @@ impl Instruction for Decrement {
         program.counter += 1;
     }
 
-    fn emit(&self) -> Vec<u8> {
+    fn emit(&self, program: &Program) -> Vec<u8> {
         vec![]
     }
 }
@@ -108,7 +146,7 @@ impl Instruction for Left {
         program.counter += 1;
     }
 
-    fn emit(&self) -> Vec<u8> {
+    fn emit(&self, program: &Program) -> Vec<u8> {
         vec![]
     }
 }
@@ -134,7 +172,7 @@ impl Instruction for Right {
         program.counter += 1;
     }
 
-    fn emit(&self) -> Vec<u8> {
+    fn emit(&self, program: &Program) -> Vec<u8> {
         vec![]
     }
 }
@@ -154,7 +192,7 @@ impl Instruction for Input {
         program.counter += 1;
     }
 
-    fn emit(&self) -> Vec<u8> {
+    fn emit(&self, program: &Program) -> Vec<u8> {
         vec![]
     }
 }
@@ -174,7 +212,7 @@ impl Instruction for Output {
         program.counter += 1;
     }
 
-    fn emit(&self) -> Vec<u8> {
+    fn emit(&self, program: &Program) -> Vec<u8> {
         vec![]
     }
 }
@@ -194,7 +232,7 @@ impl Instruction for RightJump {
         }
     }
 
-    fn emit(&self) -> Vec<u8> {
+    fn emit(&self, program: &Program) -> Vec<u8> {
         vec![]
     }
 }
@@ -214,7 +252,7 @@ impl Instruction for LeftJump {
         }
     }
 
-    fn emit(&self) -> Vec<u8> {
+    fn emit(&self, program: &Program) -> Vec<u8> {
         vec![]
     }
 }
