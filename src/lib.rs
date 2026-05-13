@@ -27,7 +27,7 @@ pub async fn run(source: &str, path: &str) {
     let instructions: Vec<instruction::InstructionSet> = vec![
         instruction::RightJump::new(3).into(),
         instruction::Decrement::new(1).into(),
-        // instruction::Output::new(1).into(),
+        instruction::Output::new(1).into(),
         instruction::LeftJump::new(0).into(),
         // instruction::Increment::new(10).into(),
         // instruction::Increment::new(10).into(),
