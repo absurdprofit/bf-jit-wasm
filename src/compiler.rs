@@ -242,13 +242,10 @@ const HEADER: &[u8] = &[
     0x72, 0x75, 0x6e, // run  // export name
     0x00, // export kind
     0x02, // export func index
-    // section "Code" (10)
-    0x0a, // section code
 ];
 
 #[cfg(target_arch = "wasm32")]
 const FOOTER: &[u8] = &[
-    0x0b, // end
     // section "name"
     0x00, // section code
     0x37, // section size
@@ -288,37 +285,28 @@ impl Compiler for RuntimeCompiler {
     fn compile(
         source: impl Iterator<Item = Vec<u8>>,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
-        let source = Vec::from_iter(source.flatten());
-        let func_body_size = source.len() + 3 + 1; // source size + local decl size + end opcode size
-        let section_code_size = func_body_size + 2; // function body size + local decl count size
-        let mut source: std::iter::Chain<
-            std::iter::Chain<
-                std::iter::Chain<
-                    std::iter::Chain<
-                        std::iter::Chain<
-                            std::iter::Chain<std::iter::Once<Vec<u8>>, std::iter::Once<Vec<u8>>>,
-                            std::iter::Once<Vec<u8>>,
-                        >,
-                        std::iter::Once<Vec<u8>>,
-                    >,
-                    std::iter::Once<Vec<u8>>,
-                >,
-                std::vec::IntoIter<Vec<u8>>,
-            >,
-            std::iter::Once<Vec<u8>>,
-        > = std::iter::once(HEADER.to_vec())
+        let mut source = Vec::from_iter(source.flatten());
+        // function body 0
+        let mut local_decl = vec![
+            0x01, // local decl count
+            0x01, // local type count
+            0x7f, // i32
+        ];
+        let mut func_body = LEB128::from((local_decl.len() + source.len() + 1) as u32).inner; // func body size = source size + end opcode size
+        func_body.append(&mut local_decl);
+        func_body.append(&mut source);
+        func_body.append(&mut vec![0x0b]); // end
+        // section "Code" (10)
+        let mut num_functions = Vec::from(&[0x01]);
+        let mut code_section = vec![0x0a];
+        code_section
+            .append(&mut LEB128::from((func_body.len() + num_functions.len()) as u32).inner); // code section size = function body size + num functions size
+        code_section.append(&mut num_functions);
+        code_section.append(&mut func_body);
+        let mut source = std::iter::once(HEADER.to_vec())
             .chain(std::iter::once(
-                LEB128::from(section_code_size as u32).inner, // section size
+                code_section, // section code
             ))
-            .chain(std::iter::once(Vec::from(&[0x01]))) // num functions
-            // function body 0
-            .chain(std::iter::once(LEB128::from(func_body_size as u32).inner)) // func body size
-            .chain(std::iter::once(Vec::from(&[
-                0x01, // local decl count
-                0x01, // local type count
-                0x7f, // i32
-            ])))
-            .chain(vec![source])
             .chain(std::iter::once(FOOTER.to_vec()));
         let mut get_chunk =
             || JsOption::from_option(source.next().map(|value| JsValue::from(value)));
