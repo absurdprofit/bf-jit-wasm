@@ -182,7 +182,30 @@ impl Instruction for Left {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.count as u32).inner, // i32 literal
+        );
+        result.push(0x6b); // i32.sub sub memory.pointer and decrement count
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x36); // i32.store
+        result.push(0x02); // alignment
+        result.push(0x00); // store offset
+
+        result
     }
 }
 
@@ -208,7 +231,30 @@ impl Instruction for Right {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.count as u32).inner, // i32 literal
+        );
+        result.push(0x6a); // i32.add add memory.pointer and increment count
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x36); // i32.store
+        result.push(0x02); // alignment
+        result.push(0x00); // store offset
+
+        result
     }
 }
 

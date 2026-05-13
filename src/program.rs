@@ -23,7 +23,7 @@ impl Program {
     pub fn new(tokens: impl Iterator<Item = tokeniser::Token>) -> Self {
         Self {
             counter: 0,
-            memory: vec![0],
+            memory: vec![0; 1024 * 1024],
             pointer: 0,
             instructions: Self::collect_tokens(tokens),
         }

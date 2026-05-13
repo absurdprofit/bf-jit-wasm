@@ -10,7 +10,7 @@ use crate::{
     instruction::Instruction,
     io::{IO, RuntimeIO},
     program::Program,
-    tokeniser::tokenise,
+    tokeniser::{SourceMapping, tokenise},
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -24,24 +24,6 @@ pub async fn run(source: &str, path: &str) {
     init_panic_hook();
 
     let mut program = Program::new(tokenise(source, path));
-    let instructions: Vec<instruction::InstructionSet> = vec![
-        instruction::RightJump::new(3).into(),
-        instruction::Decrement::new(1).into(),
-        instruction::Output::new(1).into(),
-        instruction::LeftJump::new(0).into(),
-        // instruction::Increment::new(10).into(),
-        // instruction::Increment::new(10).into(),
-        // instruction::Decrement::new(5).into(),
-    ];
-    program.memory[0] = 5;
-    RuntimeIO::write_all(&[program.memory[program.pointer]]);
 
-    if let Ok(result) = RuntimeCompiler::compile(instructions.iter().map(|i| i.emit(&program))) {
-        let runnable = result.await;
-        if let Ok(runnable) = runnable {
-            runnable.run();
-        }
-    }
-    RuntimeIO::write_all(&[program.memory[program.pointer]]);
-    RuntimeIO::write_all(&[program.counter as u8]);
+    program.run().await;
 }
