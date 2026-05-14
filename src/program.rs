@@ -34,6 +34,8 @@ impl Program {
             self.instructions
                 .iter()
                 .map(|instruction| instruction.emit(self)),
+            self.instructions.len(),
+            self,
         );
         let waker = noop_waker();
 

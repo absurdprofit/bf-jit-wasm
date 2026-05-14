@@ -9,6 +9,8 @@ use futures::FutureExt;
 use js_sys::{Function, JsOption, Promise, futures::JsFuture};
 use wasm_bindgen::prelude::*;
 
+use crate::program::Program;
+
 pub struct LEB128 {
     pub inner: Vec<u8>,
 }
@@ -76,6 +78,8 @@ pub trait Compiler {
 
     fn compile(
         source: impl Iterator<Item = Vec<u8>>,
+        instruction_count: usize,
+        program: *const Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError>;
 
     fn yield_now() -> impl Future<Output = ()>;
@@ -284,6 +288,8 @@ impl Compiler for RuntimeCompiler {
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
     fn compile(
         source: impl Iterator<Item = Vec<u8>>,
+        instruction_count: usize,
+        program: *const Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
         let mut source = Vec::from_iter(source.flatten());
         // function body 0
@@ -292,8 +298,30 @@ impl Compiler for RuntimeCompiler {
             0x01, // local type count
             0x7f, // i32
         ];
-        let mut func_body = LEB128::from((local_decl.len() + source.len() + 1) as u32).inner; // func body size = source size + end opcode size
+        let mut long_jump = vec![];
+        let mut br_table = vec![0x0e]; // br_table
+        br_table.append(&mut LEB128::from(instruction_count as u32).inner);
+        for break_depth in 0..instruction_count + 1 {
+            long_jump.push(0x02); // block
+            long_jump.push(0x40); // void
+            br_table.append(&mut LEB128::from(break_depth as u32).inner);
+        }
+        br_table.push(0x00);
+        long_jump.push(0x41); // i32.const
+
+        long_jump.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        long_jump.push(0x28); // i32.load load program pointer into stack
+        long_jump.push(0x02); // alignment
+        long_jump.push(0x04); // load offset
+        long_jump.append(&mut br_table); // br_table $inst0 $inst1 ...
+        long_jump.push(0x0b); // end
+        let mut func_body =
+            LEB128::from((long_jump.len() + local_decl.len() + source.len() + 1) as u32).inner; // func body size = source size + end opcode size
         func_body.append(&mut local_decl);
+        func_body.append(&mut long_jump);
+
         func_body.append(&mut source);
         func_body.append(&mut vec![0x0b]); // end
         // section "Code" (10)

@@ -103,6 +103,7 @@ impl Instruction for Increment {
         result.push(0x3a); // i32.store8
         result.push(0x00); // alignment
         result.push(0x00); // store offset
+        result.push(0x0b); // end
 
         result
     }
@@ -156,6 +157,7 @@ impl Instruction for Decrement {
         result.push(0x3a); // i32.store8
         result.push(0x00); // alignment
         result.push(0x00); // store offset
+        result.push(0x0b); // end
 
         result
     }
@@ -204,6 +206,7 @@ impl Instruction for Left {
         result.push(0x36); // i32.store
         result.push(0x02); // alignment
         result.push(0x00); // store offset
+        result.push(0x0b); // end
 
         result
     }
@@ -253,6 +256,7 @@ impl Instruction for Right {
         result.push(0x36); // i32.store
         result.push(0x02); // alignment
         result.push(0x00); // store offset
+        result.push(0x0b); // end
 
         result
     }
@@ -297,6 +301,7 @@ impl Instruction for Input {
         result.push(0x3a); // i32.store8
         result.push(0x00); // alignment
         result.push(0x00); // store offset
+        result.push(0x0b); // end
 
         result
     }
@@ -341,6 +346,7 @@ impl Instruction for Output {
         result.push(0x00); // load offset
         result.push(0x10); // call
         result.push(0x01); // function index (extern_write)
+        result.push(0x0b); // end
 
         result
     }
@@ -392,6 +398,7 @@ impl Instruction for RightJump {
         result.push(0x45); // i32.eqz
         result.push(0x0d); // br_if
         result.push(0x01); // break depth
+        result.push(0x0b); // end
 
         result
     }
@@ -412,12 +419,12 @@ impl Instruction for LeftJump {
         }
     }
 
-    fn emit(&self, program: &Program) -> Vec<u8> {
-        let program = program as *const Program;
-        let mut result = vec![
+    fn emit(&self, _program: &Program) -> Vec<u8> {
+        let result = vec![
             0x0c, // br
             0x00, // break depth
             0x0b, // end loop
+            0x0b, // end block
             0x0b, // end block
         ];
 
