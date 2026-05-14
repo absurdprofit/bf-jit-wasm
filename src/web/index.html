@@ -8,16 +8,23 @@
 </head>
 
 <body>
+  <pre id="output"></pre>
   <script type="module">
     import init, { run } from './bf_jit_wasm.js';
-    import { setMemory } from './imports.js';
+    import { setMemory, output } from './imports.js';
 
     const { memory } = await init();
     setMemory(memory);
 
+    const pre = document.querySelector('#output');
+
     const path = 'examples/hello.bf';
     const response = await fetch(path);
     run(await response.text(), path);
+
+    for await (const chunk of output.readable) {
+      pre.textContent += chunk;
+    }
   </script>
   <script type="importmap">
     {

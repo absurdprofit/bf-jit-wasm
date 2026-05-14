@@ -1,10 +1,26 @@
+class Output {
+  #decoder = new TextDecoderStream();
+  #output = new TransformStream();
+  #writer = this.#output.writable.getWriter();
+  readable = this.#decoder.readable;
+
+  constructor() {
+    this.#output.readable.pipeTo(this.#decoder.writable);
+  }
+
+  write(byte) {
+    this.#writer.write(Uint8Array.of(byte));
+  }
+}
+
 export function extern_read() {
   const input = prompt("Input a character");
   return input.charCodeAt(0);
 }
 
+export const output = new Output();
 export function extern_write(byte) {
-  console.log(String.fromCharCode(byte)); // TODO: wrap byte in String.fromCharCode
+  output.write(byte);
 }
 
 function createReadableFromIterable(iterable) {
