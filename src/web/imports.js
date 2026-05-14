@@ -4,7 +4,7 @@ export function extern_read() {
 }
 
 export function extern_write(byte) {
-  console.log(byte); // TODO: wrap byte in String.fromCharCode
+  console.log(String.fromCharCode(byte)); // TODO: wrap byte in String.fromCharCode
 }
 
 function createReadableFromIterable(iterable) {

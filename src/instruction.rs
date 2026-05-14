@@ -363,9 +363,14 @@ impl Instruction for RightJump {
 
     fn emit(&self, program: &Program) -> Vec<u8> {
         let program = program as *const Program;
-        let mut result: Vec<u8> = vec![
-            0x41, // i32.const
-        ];
+        let mut result: Vec<u8> = vec![];
+
+        result.push(0x00); // local index 0 store cell address in local variable 0
+        result.push(0x02); // block
+        result.push(0x40); // void
+        result.push(0x03); // loop
+        result.push(0x40); // void
+        result.push(0x41); // i32.const
         result.append(
             &mut SLEB128::from(program as i32).inner, // i32 literal
         );
@@ -380,13 +385,6 @@ impl Instruction for RightJump {
         result.push(0x02); // alignment
         result.push(0x0c); // load offset
         result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
-        result.push(0x21); // local.set
-        result.push(0x00); // local index 0 store cell address in local variable 0
-        result.push(0x02); // block
-        result.push(0x40); // void
-        result.push(0x03); // loop
-        result.push(0x40); // void
-        result.push(0x20); // local.get
         result.push(0x00); // local index
         result.push(0x2d); // i32.load8_u
         result.push(0x00); // alignment
