@@ -20,5 +20,7 @@ fn main() {
         .expect(&format!("Unable to read file at {}.", path)[..]);
 
     let mut program = Program::new(tokenise(&source, &path));
-    program.run();
+    futures::executor::block_on(async {
+        program.run().await;
+    });
 }

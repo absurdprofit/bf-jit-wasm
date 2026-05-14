@@ -6,6 +6,8 @@ use std::{
 use enum_dispatch::enum_dispatch;
 #[cfg(target_arch = "wasm32")]
 use futures::FutureExt;
+#[cfg(not(target_arch = "wasm32"))]
+use futures::future::{Ready, ready};
 use js_sys::{Function, JsOption, Promise, futures::JsFuture};
 use wasm_bindgen::prelude::*;
 
@@ -126,6 +128,23 @@ impl Future for RuntimeCompilerTargetFuture {
     #[cfg(not(target_arch = "wasm32"))]
     fn poll(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
         Poll::Ready(Err(RuntimeCompilerError::UnknownDefect))
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Compiler for RuntimeCompiler {
+    type CompileFuture = Ready<Result<RuntimeCompilerTarget, RuntimeCompilerError>>;
+
+    fn compile(
+        _source: impl Iterator<Item = Vec<u8>>,
+        _instruction_count: usize,
+        _program: *const Program,
+    ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
+        Err(RuntimeCompilerError::UnknownDefect)
+    }
+
+    fn yield_now() -> impl Future<Output = ()> {
+        ready(())
     }
 }
 
