@@ -5,13 +5,7 @@ mod program;
 mod tokeniser;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{
-    compiler::{Compiler, Runnable, RuntimeCompiler},
-    instruction::Instruction,
-    io::{IO, RuntimeIO},
-    program::Program,
-    tokeniser::{SourceMapping, tokenise},
-};
+use crate::{program::Program, tokeniser::tokenise};
 
 #[cfg(target_arch = "wasm32")]
 pub fn init_panic_hook() {
