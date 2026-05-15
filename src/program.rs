@@ -29,7 +29,6 @@ impl Program {
             self.instructions
                 .iter()
                 .map(|instruction| instruction.emit(self)),
-            self.instructions.len(),
             self,
         );
 

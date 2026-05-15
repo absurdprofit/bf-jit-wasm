@@ -80,7 +80,6 @@ pub trait Compiler {
 
     fn compile(
         source: impl Iterator<Item = Vec<u8>>,
-        instruction_count: usize,
         program: *const Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError>;
 
@@ -273,7 +272,7 @@ const HEADER: &[u8] = &[
 const FOOTER: &[u8] = &[
     // section "name"
     0x00, // section code
-    0x37, // section size
+    0x48, // section size
     0x04, // string length
     0x6e, 0x61, 0x6d, 0x65, // name  // custom section name
     0x01, // name subsection type
@@ -288,17 +287,21 @@ const FOOTER: &[u8] = &[
     0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x5f, 0x77, 0x72, 0x69, 0x74,
     0x65, // extern_write  // elem name 1
     0x02, // local name type
-    0x12, // subsection size
+    0x23, // subsection size
     0x03, // num functions
     0x00, // function index
     0x00, // num locals
     0x01, // function index
     0x00, // num locals
     0x02, // function index
-    0x01, // num locals
+    0x02, // num locals
     0x00, // local index
     0x09, // string length
     0x63, 0x65, 0x6c, 0x6c, 0x5f, 0x61, 0x64, 0x64, 0x72, // cell_addr  // local name 0
+    0x01, // local index
+    0x0f, // string length
+    0x70, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x5f, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x65,
+    0x72, // program_pointer  // local name 1
 ];
 
 #[cfg(target_arch = "wasm32")]
@@ -309,39 +312,51 @@ impl Compiler for RuntimeCompiler {
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
     fn compile(
         source: impl Iterator<Item = Vec<u8>>,
-        instruction_count: usize,
         program: *const Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
-        let mut source = Vec::from_iter(source.flatten());
+        let mut source = Vec::from_iter(
+            source
+                .enumerate()
+                .map(|(index, mut instruction)| {
+                    let mut result: Vec<u8> = vec![0x02, 0x40];
+                    result.push(0x41); // i32.const
+                    result.append(&mut SLEB128::from(index as i32).inner);
+                    result.push(0x20); // local.get
+                    result.push(0x01); // local index 1 load program pointer into stack
+                    result.push(0x6b); // i32.sub sub program pointer from index
+                    result.push(0x41); // i32.const
+                    result.push(0x00); // 0
+                    result.push(0x48); // i32.lt_s
+                    result.push(0x0d); // br_if
+                    result.push(0x00); // break depth
+                    result.append(&mut instruction);
+                    result.push(0x0b);
+
+                    result
+                })
+                .flatten(),
+        );
         // function body 0
         let mut local_decl = vec![
             0x01, // local decl count
-            0x01, // local type count
+            0x02, // local type count
             0x7f, // i32
         ];
-        let mut long_jump = vec![];
-        let mut br_table = vec![0x0e]; // br_table
-        br_table.append(&mut LEB128::from(instruction_count as u32).inner);
-        for break_depth in 0..instruction_count + 1 {
-            long_jump.push(0x02); // block
-            long_jump.push(0x40); // void
-            br_table.append(&mut LEB128::from(break_depth as u32).inner);
-        }
-        br_table.push(0x00);
-        long_jump.push(0x41); // i32.const
 
-        long_jump.append(
+        let mut set_program_pointer = vec![0x41]; // i32.const
+        set_program_pointer.append(
             &mut SLEB128::from(program as i32).inner, // i32 literal
         );
-        long_jump.push(0x28); // i32.load load program pointer into stack
-        long_jump.push(0x02); // alignment
-        long_jump.push(0x04); // load offset
-        long_jump.append(&mut br_table); // br_table $inst0 $inst1 ...
-        long_jump.push(0x0b); // end
+        set_program_pointer.push(0x28); // i32.load load program pointer into stack
+        set_program_pointer.push(0x02); // alignment
+        set_program_pointer.push(0x04); // load offset
+        set_program_pointer.push(0x21); // local.set
+        set_program_pointer.push(0x01); // local index 1 store program pointer in local variable 1
         let mut func_body =
-            LEB128::from((long_jump.len() + local_decl.len() + source.len() + 1) as u32).inner; // func body size = source size + end opcode size
+            LEB128::from((local_decl.len() + set_program_pointer.len() + source.len() + 1) as u32)
+                .inner; // func body size = local decl size + set_program_pointer size + source size + end opcode size
         func_body.append(&mut local_decl);
-        func_body.append(&mut long_jump);
+        func_body.append(&mut set_program_pointer);
 
         func_body.append(&mut source);
         func_body.append(&mut vec![0x0b]); // end
