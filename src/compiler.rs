@@ -155,6 +155,8 @@ extern "C" {
     fn extern_compile(
         get_chunk: &mut dyn FnMut() -> JsOption<JsValue>,
     ) -> Result<Promise<Function>, JsValue>;
+
+    fn extern_yield() -> Promise<JsValue>;
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -367,6 +369,6 @@ impl Compiler for RuntimeCompiler {
     }
 
     fn yield_now() -> impl Future<Output = ()> {
-        JsFuture::from(Promise::resolve(&JsValue::NULL)).map(|_| ())
+        JsFuture::from(extern_yield()).map(|_| ())
     }
 }

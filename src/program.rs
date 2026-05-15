@@ -1,9 +1,4 @@
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
-
-use futures::task::noop_waker;
+use std::task::Poll;
 
 use crate::{
     compiler::{Compiler, Runnable, RuntimeCompiler},
@@ -30,35 +25,30 @@ impl Program {
     }
 
     pub async fn run(&mut self) {
-        let mut compile_target = RuntimeCompiler::compile(
+        let compile_target = RuntimeCompiler::compile(
             self.instructions
                 .iter()
                 .map(|instruction| instruction.emit(self)),
             self.instructions.len(),
             self,
         );
-        let waker = noop_waker();
 
-        let mut context = Context::from_waker(&waker);
-        let mut pinned = if let Ok(future) = &mut compile_target {
-            Some(Pin::new(future))
+        let mut pinned = if let Ok(future) = compile_target {
+            Some(Box::pin(future))
         } else {
             None
         };
         while self.counter < self.instructions.len() {
             let instruction = &self.instructions[self.counter].clone();
             instruction.execute(self);
-            RuntimeCompiler::yield_now().await;
             if let Some(ref mut pinned) = pinned {
-                match pinned.as_mut().poll(&mut context) {
-                    Poll::Ready(result) => match result {
-                        Ok(runnable) => {
-                            runnable.run();
-                            break;
-                        }
-                        Err(_) => continue,
-                    },
-                    Poll::Pending => continue,
+                if let Poll::Ready(result) = futures::poll!(pinned) {
+                    if let Ok(runnable) = result {
+                        runnable.run();
+                        break;
+                    }
+                } else {
+                    RuntimeCompiler::yield_now().await;
                 }
             }
         }

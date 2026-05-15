@@ -371,7 +371,6 @@ impl Instruction for RightJump {
         let program = program as *const Program;
         let mut result: Vec<u8> = vec![];
 
-        result.push(0x00); // local index 0 store cell address in local variable 0
         result.push(0x02); // block
         result.push(0x40); // void
         result.push(0x03); // loop
@@ -391,14 +390,11 @@ impl Instruction for RightJump {
         result.push(0x02); // alignment
         result.push(0x0c); // load offset
         result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
-        result.push(0x00); // local index
         result.push(0x2d); // i32.load8_u
         result.push(0x00); // alignment
         result.push(0x00); // load offset
-        result.push(0x45); // i32.eqz
         result.push(0x0d); // br_if
         result.push(0x01); // break depth
-        result.push(0x0b); // end
 
         result
     }
@@ -422,9 +418,7 @@ impl Instruction for LeftJump {
     fn emit(&self, _program: &Program) -> Vec<u8> {
         let result = vec![
             0x0c, // br
-            0x00, // break depth
             0x0b, // end loop
-            0x0b, // end block
             0x0b, // end block
         ];
 
