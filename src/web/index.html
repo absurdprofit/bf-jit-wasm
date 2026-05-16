@@ -18,17 +18,12 @@
 
     const pre = document.querySelector('#output');
 
-    const path = 'examples/hello.bf';
+    const path = 'examples/mandlebrot.bf';
     const response = await fetch(path);
     queueMicrotask(async () => {
       console.time('Run');
       await run(await response.text(), path);
       console.timeEnd('Run');
-    });
-    queueMicrotask(async () => {
-      console.time('Set timeout');
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      console.timeEnd('Set timeout');
     });
 
     for await (const chunk of output.readable) {

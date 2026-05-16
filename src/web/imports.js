@@ -69,9 +69,7 @@ export async function extern_compile(getChunk) {
         }
       }
     );
-    // console.log(URL.createObjectURL(new Blob([await (new Response(createReadableFromIterable(sourceGenerator())).bytes())], { type: headers['Content-Type'] })))
-    const { run } = instance.exports;
-    return () => run(); // TODO: just return run
+    return instance.exports.run;
   } catch (e) {
     switch (e.name) {
       case "TypeError":
