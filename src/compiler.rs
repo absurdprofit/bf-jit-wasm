@@ -11,6 +11,8 @@ use futures::future::{Ready, ready};
 use js_sys::{Function, JsOption, Promise, futures::JsFuture};
 use wasm_bindgen::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
+use crate::instruction::{self, Instruction};
 use crate::program::Program;
 
 pub struct LEB128 {
@@ -78,9 +80,9 @@ pub struct RuntimeCompiler;
 pub trait Compiler {
     type CompileFuture: Future<Output = Result<RuntimeCompilerTarget, RuntimeCompilerError>>;
 
-    fn compile(
-        source: impl Iterator<Item = Vec<u8>>,
-        program: &Program,
+    fn compile<'a>(
+        source: impl Iterator<Item = &'a instruction::InstructionSet>,
+        program: &'a Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError>;
 
     fn yield_now() -> impl Future<Output = ()>;
@@ -310,44 +312,49 @@ impl Compiler for RuntimeCompiler {
     // source is not a full WASM binary, it is simply the concatenation of emit_wasm results from instructions.
     // compilation could fail, let's handle failures by matching the error ID.
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
-    fn compile(
-        source: impl Iterator<Item = Vec<u8>>,
-        program: &Program,
+    fn compile<'a>(
+        source: impl Iterator<Item = &'a instruction::InstructionSet>,
+        program: &'a Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
         let mut source = Vec::from_iter(
             source
                 .enumerate()
-                .map(|(index, mut instruction)| {
+                .map(|(index, instruction)| {
+                    let mut source = instruction.emit(program);
                     // don't add block if instruction is LeftJump
-                    let mut result: Vec<u8> = if instruction[0] != 0x0c {
-                        vec![
+                    let mut result: Vec<u8> = match instruction {
+                        instruction::InstructionSet::LeftJump(_) => vec![],
+                        _ => vec![
                             0x02, // block
                             0x40, // void
-                        ]
-                    } else {
-                        vec![]
+                        ],
                     };
                     // if instruction is RightJump, index comparison is deferred to the end of the loop
-                    if instruction[0] != 0x03 {
-                        result.push(0x41); // i32.const
-                        result.append(&mut SLEB128::from(index as i32).inner);
-                        result.push(0x20); // local.get
-                        result.push(0x01); // local index 1 load program pointer into stack
-                        result.push(0x6b); // i32.sub sub program pointer from index
-                        result.push(0x41); // i32.const
-                        result.push(0x00); // 0
-                        result.push(0x48); // i32.lt_s
-                        result.push(0x0d); // br_if
-                        if instruction[0] == 0x0c {
-                            // if instruction is LeftJump
-                            result.push(0x01); // break depth
-                        } else {
-                            result.push(0x00); // break depth
-                        }
+                    match instruction {
+                        instruction::InstructionSet::RightJump(_) => {}
+                        _ => {
+                            result.push(0x41); // i32.const
+                            result.append(&mut SLEB128::from(index as i32).inner);
+                            result.push(0x20); // local.get
+                            result.push(0x01); // local index 1 load program pointer into stack
+                            result.push(0x6b); // i32.sub sub program pointer from index
+                            result.push(0x41); // i32.const
+                            result.push(0x00); // 0
+                            result.push(0x48); // i32.lt_s
+                            result.push(0x0d); // br_if
+                            match instruction {
+                                instruction::InstructionSet::LeftJump(_) => {
+                                    result.push(0x01); // break depth
+                                }
+                                _ => {
+                                    result.push(0x00); // break depth
+                                }
+                            }
 
-                        instruction.push(0x0b); // end block
+                            source.push(0x0b); // end block
+                        }
                     }
-                    result.append(&mut instruction);
+                    result.append(&mut source);
 
                     result
                 })

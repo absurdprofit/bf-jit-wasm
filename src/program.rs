@@ -25,12 +25,7 @@ impl Program {
     }
 
     pub async fn run(&mut self) {
-        let compile_target = RuntimeCompiler::compile(
-            self.instructions
-                .iter()
-                .map(|instruction| instruction.emit(self)),
-            &self,
-        );
+        let compile_target = RuntimeCompiler::compile(self.instructions.iter(), &self);
 
         let mut pinned = if let Ok(future) = compile_target {
             Some(Box::pin(future))

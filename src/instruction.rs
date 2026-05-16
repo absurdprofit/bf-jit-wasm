@@ -4,7 +4,7 @@ use crate::{
     compiler::{LEB128, SLEB128},
     io::{IO, RuntimeIO},
     program::Program,
-    tokeniser::{self, SourceMapping},
+    tokeniser::{self},
 };
 
 #[derive(Clone, Debug)]
@@ -162,7 +162,7 @@ impl Instruction for Decrement {
 }
 
 impl Left {
-    pub fn new(count: usize, source_mapping: SourceMapping) -> Self {
+    pub fn new(count: usize, source_mapping: tokeniser::SourceMapping) -> Self {
         Self {
             count,
             source_mapping,
@@ -173,7 +173,7 @@ impl Left {
 impl Instruction for Left {
     fn execute(&self, program: &mut Program) -> () {
         assert!(
-            program.pointer > 0,
+            program.pointer >= self.count,
             "RuntimeError: Memory underflow at {}",
             self.source_mapping
         );
@@ -210,7 +210,7 @@ impl Instruction for Left {
 }
 
 impl Right {
-    pub fn new(count: usize, source_mapping: SourceMapping) -> Self {
+    pub fn new(count: usize, source_mapping: tokeniser::SourceMapping) -> Self {
         Self {
             count,
             source_mapping,
@@ -222,8 +222,8 @@ impl Instruction for Right {
     fn execute(&self, program: &mut Program) -> () {
         program.pointer += self.count;
         if program.pointer >= program.memory.len() {
-            match program.memory.try_reserve(1) {
-                Ok(_) => program.memory.push(0),
+            match program.memory.try_reserve(self.count) {
+                Ok(_) => program.memory.push(0), // TODO: figure out what this should be
                 Err(_) => panic!("RuntimeError: Memory overflow at {}", self.source_mapping),
             };
         }
@@ -410,11 +410,18 @@ impl Instruction for LeftJump {
     }
 
     fn emit(&self, _program: &Program) -> Vec<u8> {
-        let result = vec![
-            0x0c, // br
-            0x00, // break depth
-            0x0b, // end loop
+        // reset $program_pointer to the start of the loop body if condition is true
+        let mut result = vec![
+            0x41, // i32.const
         ];
+        result.append(
+            &mut SLEB128::from(self.start as i32).inner, // i32 literal
+        );
+        result.push(0x21); // local.set
+        result.push(0x01); // local index 1 (program pointer)
+        result.push(0x0c); // br
+        result.push(0x00); // break depth
+        result.push(0x0b); // end loop
 
         result
     }
