@@ -24,4 +24,5 @@ build-web: build-wasm32
   @cp examples/* target/web/examples/
 
 build-wasm32:
+  @rustup target add wasm32-unknown-unknown
   @cargo build --lib --target wasm32-unknown-unknown
