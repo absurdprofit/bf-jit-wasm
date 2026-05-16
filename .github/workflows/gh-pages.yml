@@ -48,7 +48,8 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Build
         run: |
-          ./vendor/.tools/bin/just build-web
+          cargo add just
+          just build-web
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
