@@ -365,8 +365,6 @@ impl Instruction for RightJump {
         let program = program as *const Program;
         let mut result: Vec<u8> = vec![];
 
-        result.push(0x02); // block
-        result.push(0x40); // void
         result.push(0x03); // loop
         result.push(0x40); // void
         result.push(0x41); // i32.const
@@ -412,9 +410,8 @@ impl Instruction for LeftJump {
     fn emit(&self, _program: &Program) -> Vec<u8> {
         let result = vec![
             0x0c, // br
-            0x00, // break depth
+            0x01, // break depth
             0x0b, // end loop
-            0x0b, // end block
         ];
 
         result

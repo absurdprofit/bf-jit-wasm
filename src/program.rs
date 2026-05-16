@@ -29,7 +29,7 @@ impl Program {
             self.instructions
                 .iter()
                 .map(|instruction| instruction.emit(self)),
-            self,
+            &self,
         );
 
         let mut pinned = if let Ok(future) = compile_target {

@@ -80,7 +80,7 @@ pub trait Compiler {
 
     fn compile(
         source: impl Iterator<Item = Vec<u8>>,
-        program: *const Program,
+        program: &Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError>;
 
     fn yield_now() -> impl Future<Output = ()>;
@@ -312,15 +312,31 @@ impl Compiler for RuntimeCompiler {
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
     fn compile(
         source: impl Iterator<Item = Vec<u8>>,
-        program: *const Program,
+        program: &Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
+        let mut instruction_block_id = 0;
         let mut source = Vec::from_iter(
             source
                 .enumerate()
                 .map(|(index, mut instruction)| {
-                    let mut result: Vec<u8> = vec![0x02, 0x40];
+                    if index > program.counter {
+                        return instruction;
+                    }
+
+                    if instruction[0] == 0x0c {
+                        // if instruction is LeftJump
+                        return instruction;
+                    } else if instruction[0] != 0x02 {
+                        // if instruction is RightJump
+                        instruction.push(0x0b); // end
+                    }
+
+                    let mut result: Vec<u8> = vec![
+                        0x02, // block
+                        0x40, // void
+                    ];
                     result.push(0x41); // i32.const
-                    result.append(&mut SLEB128::from(index as i32).inner);
+                    result.append(&mut SLEB128::from(instruction_block_id as i32).inner);
                     result.push(0x20); // local.get
                     result.push(0x01); // local index 1 load program pointer into stack
                     result.push(0x6b); // i32.sub sub program pointer from index
@@ -330,7 +346,9 @@ impl Compiler for RuntimeCompiler {
                     result.push(0x0d); // br_if
                     result.push(0x00); // break depth
                     result.append(&mut instruction);
-                    result.push(0x0b);
+
+                    // TODO: account for nested instructions (loops), use a stack instead
+                    instruction_block_id += 1;
 
                     result
                 })
@@ -343,6 +361,7 @@ impl Compiler for RuntimeCompiler {
             0x7f, // i32
         ];
 
+        let program = program as *const Program;
         let mut set_program_pointer = vec![0x41]; // i32.const
         set_program_pointer.append(
             &mut SLEB128::from(program as i32).inner, // i32 literal
