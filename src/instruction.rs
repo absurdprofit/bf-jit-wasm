@@ -189,6 +189,10 @@ impl Instruction for Left {
         result.append(
             &mut SLEB128::from(program as i32).inner, // i32 literal
         );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
@@ -197,10 +201,6 @@ impl Instruction for Left {
             &mut LEB128::from(self.count as u32).inner, // i32 literal
         );
         result.push(0x6b); // i32.sub sub memory.pointer and decrement count
-        result.push(0x41); // i32.const
-        result.append(
-            &mut SLEB128::from(program as i32).inner, // i32 literal
-        );
         result.push(0x36); // i32.store
         result.push(0x02); // alignment
         result.push(0x00); // store offset
@@ -238,6 +238,10 @@ impl Instruction for Right {
         result.append(
             &mut SLEB128::from(program as i32).inner, // i32 literal
         );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
@@ -246,10 +250,6 @@ impl Instruction for Right {
             &mut LEB128::from(self.count as u32).inner, // i32 literal
         );
         result.push(0x6a); // i32.add add memory.pointer and increment count
-        result.push(0x41); // i32.const
-        result.append(
-            &mut SLEB128::from(program as i32).inner, // i32 literal
-        );
         result.push(0x36); // i32.store
         result.push(0x02); // alignment
         result.push(0x00); // store offset
@@ -363,11 +363,12 @@ impl Instruction for RightJump {
 
     fn emit(&self, program: &Program) -> Vec<u8> {
         let program = program as *const Program;
-        let mut result: Vec<u8> = vec![];
+        let mut result: Vec<u8> = vec![
+            0x03, // loop
+            0x40, // void
+            0x41, // i32.const
+        ];
 
-        result.push(0x03); // loop
-        result.push(0x40); // void
-        result.push(0x41); // i32.const
         result.append(
             &mut SLEB128::from(program as i32).inner, // i32 literal
         );
@@ -385,6 +386,7 @@ impl Instruction for RightJump {
         result.push(0x2d); // i32.load8_u
         result.push(0x00); // alignment
         result.push(0x00); // load offset
+        result.push(0x45); // i32.eqz check if cell value is zero
         result.push(0x0d); // br_if
         result.push(0x01); // break depth
 
@@ -410,7 +412,7 @@ impl Instruction for LeftJump {
     fn emit(&self, _program: &Program) -> Vec<u8> {
         let result = vec![
             0x0c, // br
-            0x01, // break depth
+            0x00, // break depth
             0x0b, // end loop
         ];
 

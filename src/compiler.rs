@@ -314,41 +314,40 @@ impl Compiler for RuntimeCompiler {
         source: impl Iterator<Item = Vec<u8>>,
         program: &Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
-        let mut instruction_block_id = 0;
         let mut source = Vec::from_iter(
             source
                 .enumerate()
                 .map(|(index, mut instruction)| {
-                    if index > program.counter {
-                        return instruction;
-                    }
+                    // don't add block if instruction is LeftJump
+                    let mut result: Vec<u8> = if instruction[0] != 0x0c {
+                        vec![
+                            0x02, // block
+                            0x40, // void
+                        ]
+                    } else {
+                        vec![]
+                    };
+                    // if instruction is RightJump, index comparison is deferred to the end of the loop
+                    if instruction[0] != 0x03 {
+                        result.push(0x41); // i32.const
+                        result.append(&mut SLEB128::from(index as i32).inner);
+                        result.push(0x20); // local.get
+                        result.push(0x01); // local index 1 load program pointer into stack
+                        result.push(0x6b); // i32.sub sub program pointer from index
+                        result.push(0x41); // i32.const
+                        result.push(0x00); // 0
+                        result.push(0x48); // i32.lt_s
+                        result.push(0x0d); // br_if
+                        if instruction[0] == 0x0c {
+                            // if instruction is LeftJump
+                            result.push(0x01); // break depth
+                        } else {
+                            result.push(0x00); // break depth
+                        }
 
-                    if instruction[0] == 0x0c {
-                        // if instruction is LeftJump
-                        return instruction;
-                    } else if instruction[0] != 0x02 {
-                        // if instruction is RightJump
-                        instruction.push(0x0b); // end
+                        instruction.push(0x0b); // end block
                     }
-
-                    let mut result: Vec<u8> = vec![
-                        0x02, // block
-                        0x40, // void
-                    ];
-                    result.push(0x41); // i32.const
-                    result.append(&mut SLEB128::from(instruction_block_id as i32).inner);
-                    result.push(0x20); // local.get
-                    result.push(0x01); // local index 1 load program pointer into stack
-                    result.push(0x6b); // i32.sub sub program pointer from index
-                    result.push(0x41); // i32.const
-                    result.push(0x00); // 0
-                    result.push(0x48); // i32.lt_s
-                    result.push(0x0d); // br_if
-                    result.push(0x00); // break depth
                     result.append(&mut instruction);
-
-                    // TODO: account for nested instructions (loops), use a stack instead
-                    instruction_block_id += 1;
 
                     result
                 })
