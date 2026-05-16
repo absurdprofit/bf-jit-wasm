@@ -48,7 +48,9 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Build
         run: |
-          cargo install just
+          if ! command -v just >/dev/null 2>&1; then
+            cargo install just
+          fi
           just build-web
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
