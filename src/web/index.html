@@ -8,22 +8,99 @@
 </head>
 
 <body>
-  <pre id="output"></pre>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .demo {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+
+      .select {
+        padding: 10px;
+
+        h2 {
+          margin: 0;
+        }
+      }
+
+      .time {
+        padding: 10px;
+
+        p {
+          margin: 0;
+        }
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      pre {
+        background-color: black;
+        color: #00ff87;
+        flex: 1;
+        margin: 0;
+        padding: 15px;
+        text-align: center;
+      }
+    }
+  </style>
+  <div class="demo">
+    <h1>Brainf*ck JIT Runtime in WebAssembly</h1>
+    <div class="select">
+      <h2>Select a Program</h2>
+      <select id="options" name="options">
+        <option value="hello.bf">Hello World</option>
+        <option value="cat.bf">Cat</option>
+        <option value="long.bf">Long</option>
+        <option value="mandelbrot.bf">Mandelbrot</option>
+        <option value="test.bf">test</option>
+      </select>
+    </div>
+    <div class="time">
+      <p>Time: <span class="raw"></span>ms</p>
+    </div>
+    <pre id="output"></pre>
+  </div>
   <script type="module">
     import init, { run } from './bf_jit_wasm.js';
     import { setMemory, output } from './imports.js';
+
+    function fetchSource(path) {
+      return fetch(path).then(response => response.text());
+    }
+
+    const timeRaw = document.querySelector('.time .raw');
+    const cache = new Map();
+    async function runExample(path) {
+      pre.textContent = "";
+      const source = cache.get(path) ?? await fetchSource(path);
+      cache.set(path, source);
+      const start = performance.now();
+      await run(source, path);
+      const end = performance.now();
+      timeRaw.textContent = (end - start).toFixed(2);
+    }
 
     const { memory } = await init();
     setMemory(memory);
 
     const pre = document.querySelector('#output');
 
-    const path = 'examples/mandlebrot.bf';
-    const response = await fetch(path);
     queueMicrotask(async () => {
-      console.time('Run');
-      await run(await response.text(), path);
-      console.timeEnd('Run');
+      const path = 'examples/hello.bf';
+      await runExample(path);
+    });
+
+    const options = document.querySelector('#options');
+    options.addEventListener('change', async (event) => {
+      const path = `examples/${event.target.value}`;
+      await runExample(path);
     });
 
     for await (const chunk of output.readable) {
