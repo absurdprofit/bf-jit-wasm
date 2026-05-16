@@ -13,7 +13,6 @@ impl Display for SourceMapping {
     }
 }
 
-#[derive(PartialEq)]
 pub enum Token {
     Right(SourceMapping),
     Left(SourceMapping),
@@ -23,6 +22,24 @@ pub enum Token {
     Output,
     RightJump(SourceMapping),
     LeftJump(SourceMapping),
+}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        use Token::*;
+
+        matches!(
+            (self, other),
+            (Right(_), Right(_))
+                | (Left(_), Left(_))
+                | (RightJump(_), RightJump(_))
+                | (LeftJump(_), LeftJump(_))
+                | (Increment, Increment)
+                | (Decrement, Decrement)
+                | (Input, Input)
+                | (Output, Output)
+        )
+    }
 }
 
 pub fn tokenise(source: &str, path: &str) -> impl Iterator<Item = Token> {
