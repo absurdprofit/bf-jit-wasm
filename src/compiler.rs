@@ -136,10 +136,9 @@ impl Future for RuntimeCompilerTargetFuture {
 impl Compiler for RuntimeCompiler {
     type CompileFuture = Ready<Result<RuntimeCompilerTarget, RuntimeCompilerError>>;
 
-    fn compile(
-        _source: impl Iterator<Item = Vec<u8>>,
-        _instruction_count: usize,
-        _program: *const Program,
+    fn compile<'a>(
+        _source: impl Iterator<Item = &'a instruction::InstructionSet>,
+        _program: &'a Program,
     ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
         Err(RuntimeCompilerError::UnknownDefect)
     }
@@ -206,6 +205,7 @@ impl From<Option<f64>> for RuntimeCompilerError {
   (func (export "run")
     (local $cell_addr i32)
     (local $program_counter i32)
+    (local $program_pointer i32)
     <emit>
 ))
 
@@ -216,7 +216,7 @@ const HEADER: &[u8] = &[
     0x01, 0x00, 0x00, 0x00, // WASM_BINARY_VERSION
     // section "Type" (1)
     0x01, // section code
-    0x14, // section size
+    0x15, // section size
     0x04, // num types
     // func type 0
     0x60, // func
@@ -225,7 +225,8 @@ const HEADER: &[u8] = &[
     0x7f, // i32
     // func type 1
     0x60, // func
-    0x01, // num params
+    0x02, // num params
+    0x7f, // i32
     0x7f, // i32
     0x00, // num results
     // func type 2

@@ -25,8 +25,10 @@ export function extern_read() {
 const runtime_error_tag = new WebAssembly.Tag({ parameters: ["i32", "i32", "i32", "i32", "i32"] });
 
 export const output = new Output();
-export function extern_write(byte) {
-  output.write(byte);
+export function extern_write(byte, count) {
+  for (let i = 0; i < count; i++) {
+    output.write(byte);
+  }
 }
 
 function createReadableFromIterable(iterable) {

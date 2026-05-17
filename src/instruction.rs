@@ -414,6 +414,10 @@ impl Instruction for Output {
         result.push(0x2d); // i32.load8_u load cell into stack
         result.push(0x00); // alignment
         result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(self.count as i32).inner, // i32 literal
+        );
         result.push(0x10); // call
         result.push(0x01); // function index (extern_write)
 
