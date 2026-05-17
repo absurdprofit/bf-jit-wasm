@@ -71,7 +71,7 @@
   </div>
   <script type="module">
     import init, { run } from './bf_jit_wasm.js';
-    import { setMemory, output, handleRuntimeError } from './imports.js';
+    import { setMemory, output } from './imports.js';
 
     function fetchSource(path) {
       return fetch(path).then(response => response.text());
@@ -84,9 +84,7 @@
       const source = cache.get(path) ?? await fetchSource(path);
       cache.set(path, source);
       const start = performance.now();
-      await run(source, path).catch((e) => {
-        handleRuntimeError(e, path);
-      });
+      await run(source, path);
       const end = performance.now();
       timeRaw.textContent = (end - start).toFixed(2);
     }

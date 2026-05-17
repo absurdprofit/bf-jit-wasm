@@ -22,6 +22,8 @@ export function extern_read() {
   return input.charCodeAt(0);
 }
 
+const runtime_error_tag = new WebAssembly.Tag({ parameters: ["i32", "i32", "i32"] });
+
 export const output = new Output();
 export function extern_write(byte) {
   output.write(byte);
@@ -66,11 +68,17 @@ export async function extern_compile(getChunk) {
         "imports.js": {
           extern_read,
           extern_write,
-          runtime_error_tag: new WebAssembly.Tag({ parameters: ["i32", "i32", "i32"] }),
+          runtime_error_tag,
         }
       }
     );
-    return instance.exports.run;
+    return () => {
+      try {
+        instance.exports.run();
+      } catch (e) {
+        handleRuntimeError(e, "<compiled>");
+      }
+    };
   } catch (e) {
     switch (e.name) {
       case "TypeError":
@@ -92,12 +100,12 @@ export function setMemory(_memory) {
 }
 
 export function handleRuntimeError(tag, path) {
-  switch (tag.getArg(0)) {
+  switch (tag.getArg(runtime_error_tag, 0)) {
     case 0: // Underflow
-      console.error(`Runtime error: Underflow at ${path}:${tag.getArg(1)}:${tag.getArg(2)}`);
+      console.error(`Runtime error: Underflow at ${path}:${tag.getArg(runtime_error_tag, 1)}:${tag.getArg(runtime_error_tag, 2)}`);
       break;
     case 1: // Overflow
-      console.error(`Runtime error: Overflow at ${path}:${tag.getArg(1)}:${tag.getArg(2)}`);
+      console.error(`Runtime error: Overflow at ${path}:${tag.getArg(runtime_error_tag, 1)}:${tag.getArg(runtime_error_tag, 2)}`);
       break;
     default:
       console.error("Unknown runtime error");
