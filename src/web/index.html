@@ -62,6 +62,7 @@
         <option value="long.bf">Long</option>
         <option value="mandelbrot.bf">Mandelbrot</option>
         <option value="test.bf">Test</option>
+        <option value="upload">Upload Custom Program</option>
       </select>
     </div>
     <div class="time">
@@ -73,6 +74,26 @@
     import init, { run } from './bf_jit_wasm.js';
     import { setMemory, output } from './imports.js';
 
+    function readFileFromSystem() {
+      return new Promise((resolve, reject) => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.b, .bf, .brainfuck, text/plain';
+        fileInput.onchange = async (e) => {
+          const file = e.target.files[0];
+          const path = file.name;
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              resolve({ source: e.target.result, path });
+            };
+            reader.onerror = reject;
+            reader.readAsText(file);
+          }
+        };
+        fileInput.click();
+      });
+    }
     function fetchSource(path) {
       return fetch(path).then(response => response.text());
     }
@@ -83,6 +104,13 @@
       pre.textContent = "";
       const source = cache.get(path) ?? await fetchSource(path);
       cache.set(path, source);
+      const start = performance.now();
+      await run(source, path);
+      const end = performance.now();
+      timeRaw.textContent = (end - start).toFixed(2);
+    }
+    async function runFile(source, path) {
+      pre.textContent = "";
       const start = performance.now();
       await run(source, path);
       const end = performance.now();
@@ -101,6 +129,11 @@
 
     const options = document.querySelector('#options');
     options.addEventListener('change', async (event) => {
+      if (event.target.value === 'upload') {
+        const { source, path } = await readFileFromSystem();
+        await runFile(source, path);
+        return;
+      }
       const path = `examples/${event.target.value}`;
       await runExample(path);
     });
