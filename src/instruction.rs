@@ -285,7 +285,7 @@ impl Instruction for Right {
         result.push(0x04); // if
         result.push(0x40); // void block type
         result.push(0x41); // i32.const
-        result.push(0x00); // i32 literal 0
+        result.push(0x01); // i32 literal 0
         result.push(0x41); // i32.const
         result.append(
             &mut LEB128::from(self.source_mapping.line() as u32).inner, // i32 literal
