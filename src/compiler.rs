@@ -197,8 +197,15 @@ impl From<Option<f64>> for RuntimeCompilerError {
     )
   )
 
+  (import "imports.js" "runtime_error_tag"
+    (tag $runtime_error_tag
+        (param i32 i32 i32)
+    )
+  )
+
   (func (export "run")
     (local $cell_addr i32)
+    (local $program_counter i32)
     <emit>
 ))
 
@@ -209,8 +216,8 @@ const HEADER: &[u8] = &[
     0x01, 0x00, 0x00, 0x00, // WASM_BINARY_VERSION
     // section "Type" (1)
     0x01, // section code
-    0x0c, // section size
-    0x03, // num types
+    0x12, // section size
+    0x04, // num types
     // func type 0
     0x60, // func
     0x00, // num params
@@ -223,12 +230,19 @@ const HEADER: &[u8] = &[
     0x00, // num results
     // func type 2
     0x60, // func
+    0x03, // num params
+    0x7f, // i32
+    0x7f, // i32
+    0x7f, // i32
+    0x00, // num results
+    // func type 3
+    0x60, // func
     0x00, // num params
     0x00, // num results
     // section "Import" (2)
     0x02, // section code
-    0x42, // section size
-    0x03, // num imports
+    0x62, // section size
+    0x04, // num imports
     // import header 0
     0x03, // string length
     0x65, 0x6e, 0x76, // env  // import module name
@@ -255,11 +269,22 @@ const HEADER: &[u8] = &[
     0x65, // extern_write  // import field name
     0x00, // import kind
     0x01, // import signature index
+    // import header 3
+    0x0a, // string length
+    0x69, 0x6d, 0x70, 0x6f, 0x72, 0x74, 0x73, 0x2e, 0x6a,
+    0x73, // imports.js  // import module name
+    0x11, // string length
+    0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x5f, 0x74,
+    0x61, // runtime_error_tag
+    0x67, // import field name
+    0x04, // import kind
+    0x00, // tag attribute
+    0x02, // tag signature index
     // section "Function" (3)
     0x03, // section code
     0x02, // section size
     0x01, // num functions
-    0x02, // function 0 signature index
+    0x03, // function 0 signature index
     // section "Export" (7)
     0x07, // section code
     0x07, // section size
@@ -274,7 +299,7 @@ const HEADER: &[u8] = &[
 const FOOTER: &[u8] = &[
     // section "name"
     0x00, // section code
-    0x48, // section size
+    0x6f, // section size
     0x04, // string length
     0x6e, 0x61, 0x6d, 0x65, // name  // custom section name
     0x01, // name subsection type
@@ -289,14 +314,14 @@ const FOOTER: &[u8] = &[
     0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x5f, 0x77, 0x72, 0x69, 0x74,
     0x65, // extern_write  // elem name 1
     0x02, // local name type
-    0x23, // subsection size
+    0x34, // subsection size
     0x03, // num functions
     0x00, // function index
     0x00, // num locals
     0x01, // function index
     0x00, // num locals
     0x02, // function index
-    0x02, // num locals
+    0x03, // num locals
     0x00, // local index
     0x09, // string length
     0x63, 0x65, 0x6c, 0x6c, 0x5f, 0x61, 0x64, 0x64, 0x72, // cell_addr  // local name 0
@@ -304,6 +329,18 @@ const FOOTER: &[u8] = &[
     0x0f, // string length
     0x70, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x5f, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x65,
     0x72, // program_pointer  // local name 1
+    0x02, // local index
+    0x0f, // string length
+    0x70, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x5f, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x65,
+    0x72, // program_pointer // local name 2
+    0x0b, // name subsection type
+    0x14, // subsection size
+    0x01, // num names
+    0x00, // elem index
+    0x11, // string length
+    0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x5f, 0x74,
+    0x61, // runtime_error_tag // elem name 0
+    0x67,
 ];
 
 #[cfg(target_arch = "wasm32")]
@@ -363,7 +400,7 @@ impl Compiler for RuntimeCompiler {
         // function body 0
         let mut local_decl = vec![
             0x01, // local decl count
-            0x02, // local type count
+            0x03, // local type count
             0x7f, // i32
         ];
 

@@ -189,10 +189,6 @@ impl Instruction for Left {
         result.append(
             &mut SLEB128::from(program as i32).inner, // i32 literal
         );
-        result.push(0x41); // i32.const
-        result.append(
-            &mut SLEB128::from(program as i32).inner, // i32 literal
-        );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
@@ -201,6 +197,34 @@ impl Instruction for Left {
             &mut LEB128::from(self.count as u32).inner, // i32 literal
         );
         result.push(0x6b); // i32.sub sub memory.pointer and decrement count
+        result.push(0x21); // local.set
+        result.push(0x02); // local index 2 (program pointer)
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 load program pointer into stack
+        result.push(0x41); // i32.const
+        result.push(0x00); // i32 literal 0
+        result.push(0x48); // i32.lt_s
+        result.push(0x04); // if
+        result.push(0x40); // void block type
+        result.push(0x41); // i32.const
+        result.push(0x00); // i32 literal 0
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.source_mapping.line() as u32).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.source_mapping.column() as u32).inner, // i32 literal
+        );
+        result.push(0x08); // throw
+        result.push(0x00); // $runtime_error_tag
+        result.push(0x0b); // end
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 load program pointer into stack
         result.push(0x36); // i32.store
         result.push(0x02); // alignment
         result.push(0x00); // store offset
@@ -238,10 +262,6 @@ impl Instruction for Right {
         result.append(
             &mut SLEB128::from(program as i32).inner, // i32 literal
         );
-        result.push(0x41); // i32.const
-        result.append(
-            &mut SLEB128::from(program as i32).inner, // i32 literal
-        );
         result.push(0x28); // i32.load load program pointer into stack
         result.push(0x02); // alignment
         result.push(0x00); // load offset
@@ -249,7 +269,40 @@ impl Instruction for Right {
         result.append(
             &mut LEB128::from(self.count as u32).inner, // i32 literal
         );
-        result.push(0x6a); // i32.add add memory.pointer and increment count
+        result.push(0x6a); // i32.add add program pointer and increment count
+        result.push(0x21); // local.set
+        result.push(0x02); // local index 2 (program pointer)
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 load program pointer into stack
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory length into stack
+        result.push(0x02); // alignment
+        result.push(0x08); // load offset
+        result.push(0x4a); // i32.gt_s
+        result.push(0x04); // if
+        result.push(0x40); // void block type
+        result.push(0x41); // i32.const
+        result.push(0x00); // i32 literal 0
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.source_mapping.line() as u32).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.source_mapping.column() as u32).inner, // i32 literal
+        );
+        result.push(0x08); // throw
+        result.push(0x00); // $runtime_error_tag
+        result.push(0x0b); // end
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 load program pointer into stack
         result.push(0x36); // i32.store
         result.push(0x02); // alignment
         result.push(0x00); // store offset
@@ -410,7 +463,7 @@ impl Instruction for LeftJump {
     }
 
     fn emit(&self, _program: &Program) -> Vec<u8> {
-        // reset $program_pointer to the start of the loop body if condition is true
+        // reset $program_counter to the start of the loop body if condition is true
         let mut result = vec![
             0x41, // i32.const
         ];
@@ -418,7 +471,7 @@ impl Instruction for LeftJump {
             &mut SLEB128::from(self.start as i32).inner, // i32 literal
         );
         result.push(0x21); // local.set
-        result.push(0x01); // local index 1 (program pointer)
+        result.push(0x01); // local index 1 (program counter)
         result.push(0x0c); // br
         result.push(0x00); // break depth
         result.push(0x0b); // end loop

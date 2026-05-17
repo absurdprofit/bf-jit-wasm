@@ -7,6 +7,16 @@ pub struct SourceMapping {
     file_path: String,
 }
 
+impl SourceMapping {
+    pub fn line(&self) -> usize {
+        self.line
+    }
+
+    pub fn column(&self) -> usize {
+        self.column
+    }
+}
+
 impl Display for SourceMapping {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}:{}", self.file_path, self.line, self.column)

@@ -27,7 +27,7 @@ At the top of this block, the instruction's index is injected along with a condi
 - Native interpreter execution
 - WebAssembly concurrent just in time compilation
 - Switch to JIT binary during program execution
-- Support for source mapped error output (interpreted mode only)
+- Support for source mapped error output
 - Instruction compression
 - An in-browser demo
 

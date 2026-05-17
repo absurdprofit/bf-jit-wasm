@@ -66,6 +66,7 @@ export async function extern_compile(getChunk) {
         "imports.js": {
           extern_read,
           extern_write,
+          runtime_error_tag: new WebAssembly.Tag({ parameters: ["i32", "i32", "i32"] }),
         }
       }
     );
@@ -88,4 +89,17 @@ export async function extern_compile(getChunk) {
 
 export function setMemory(_memory) {
   memory = _memory;
+}
+
+export function handleRuntimeError(tag, path) {
+  switch (tag.getArg(0)) {
+    case 0: // Underflow
+      console.error(`Runtime error: Underflow at ${path}:${tag.getArg(1)}:${tag.getArg(2)}`);
+      break;
+    case 1: // Overflow
+      console.error(`Runtime error: Overflow at ${path}:${tag.getArg(1)}:${tag.getArg(2)}`);
+      break;
+    default:
+      console.error("Unknown runtime error");
+  }
 }
