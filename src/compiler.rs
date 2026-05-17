@@ -216,7 +216,7 @@ const HEADER: &[u8] = &[
     0x01, 0x00, 0x00, 0x00, // WASM_BINARY_VERSION
     // section "Type" (1)
     0x01, // section code
-    0x12, // section size
+    0x14, // section size
     0x04, // num types
     // func type 0
     0x60, // func
@@ -230,7 +230,9 @@ const HEADER: &[u8] = &[
     0x00, // num results
     // func type 2
     0x60, // func
-    0x03, // num params
+    0x05, // num params
+    0x7f, // i32
+    0x7f, // i32
     0x7f, // i32
     0x7f, // i32
     0x7f, // i32

@@ -216,6 +216,17 @@ impl Instruction for Left {
         result.append(
             &mut LEB128::from(self.source_mapping.column() as u32).inner, // i32 literal
         );
+        let path = self.source_mapping.file_path();
+        let path_length = path.len() as u32;
+        let path = path as *const str as *const u8;
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(path as i32).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(path_length as i32).inner, // i32 literal
+        );
         result.push(0x08); // throw
         result.push(0x00); // $runtime_error_tag
         result.push(0x0b); // end
@@ -293,6 +304,17 @@ impl Instruction for Right {
         result.push(0x41); // i32.const
         result.append(
             &mut LEB128::from(self.source_mapping.column() as u32).inner, // i32 literal
+        );
+        let path = self.source_mapping.file_path();
+        let path_length = path.len() as u32;
+        let path = path as *const str as *const u8;
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(path as i32).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(path_length as i32).inner, // i32 literal
         );
         result.push(0x08); // throw
         result.push(0x00); // $runtime_error_tag

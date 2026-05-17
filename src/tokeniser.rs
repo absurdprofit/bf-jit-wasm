@@ -15,6 +15,10 @@ impl SourceMapping {
     pub fn column(&self) -> usize {
         self.column
     }
+
+    pub fn file_path(&self) -> &str {
+        &self.file_path
+    }
 }
 
 impl Display for SourceMapping {

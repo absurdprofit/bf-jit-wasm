@@ -22,7 +22,7 @@ export function extern_read() {
   return input.charCodeAt(0);
 }
 
-const runtime_error_tag = new WebAssembly.Tag({ parameters: ["i32", "i32", "i32"] });
+const runtime_error_tag = new WebAssembly.Tag({ parameters: ["i32", "i32", "i32", "i32", "i32"] });
 
 export const output = new Output();
 export function extern_write(byte) {
@@ -99,7 +99,10 @@ export function setMemory(_memory) {
   memory = _memory;
 }
 
-export function handleRuntimeError(tag, path) {
+export function handleRuntimeError(tag) {
+  const path_pointer = tag.getArg(runtime_error_tag, 3);
+  const path_length = tag.getArg(runtime_error_tag, 4);
+  const path = new TextDecoder().decode(new Uint8Array(memory.buffer, path_pointer, path_length));
   switch (tag.getArg(runtime_error_tag, 0)) {
     case 0: // Underflow
       console.error(`Runtime error: Underflow at ${path}:${tag.getArg(runtime_error_tag, 1)}:${tag.getArg(runtime_error_tag, 2)}`);
