@@ -66,7 +66,17 @@ impl Program {
                         source_mapping
                     );
                     let (start, _) = start.unwrap();
-                    instructions[start] = instruction::RightJump::new(instructions.len()).into();
+                    let end = instructions.len();
+                    // check for [-] pattern and replace with zeroing instruction
+                    if instructions[start..end].ends_with(&[
+                        instruction::RightJump::new(0).into(),
+                        instruction::Decrement::new(1).into(),
+                    ]) {
+                        instructions.truncate(start);
+                        instructions.push(instruction::Zero.into());
+                        continue;
+                    }
+                    instructions[start] = instruction::RightJump::new(end).into();
                     instructions.push(instruction::LeftJump::new(start).into());
                 }
                 token => {

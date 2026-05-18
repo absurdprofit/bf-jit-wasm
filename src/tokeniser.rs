@@ -27,6 +27,7 @@ impl Display for SourceMapping {
     }
 }
 
+#[derive(Clone)]
 pub enum Token {
     Right(SourceMapping),
     Left(SourceMapping),

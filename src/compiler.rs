@@ -11,7 +11,6 @@ use futures::future::{Ready, ready};
 use js_sys::{Function, JsOption, Promise, futures::JsFuture};
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
 use crate::instruction::{self, Instruction};
 use crate::program::Program;
 

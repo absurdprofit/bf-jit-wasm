@@ -7,44 +7,47 @@ use crate::{
     tokeniser::{self},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Zero;
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Right {
     count: usize,
     source_mapping: tokeniser::SourceMapping,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Left {
     count: usize,
     source_mapping: tokeniser::SourceMapping,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Increment {
     amount: u8,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Decrement {
     amount: u8,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Input {
     count: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Output {
     count: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RightJump {
     end: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LeftJump {
     start: usize,
 }
@@ -53,6 +56,41 @@ pub struct LeftJump {
 pub trait Instruction {
     fn execute(&self, program: &mut Program) -> ();
     fn emit(&self, program: &Program) -> Vec<u8>;
+}
+
+impl Instruction for Zero {
+    fn execute(&self, program: &mut Program) -> () {
+        program.memory[program.pointer] = 0;
+        program.counter += 1;
+    }
+
+    fn emit(&self, program: &Program) -> Vec<u8> {
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
+        result.push(0x41); // i32.const
+        result.push(0x00); // i32 literal 0
+        result.push(0x3a); // i32.store8 store 0 in cell
+        result.push(0x00); // alignment
+        result.push(0x00); // store offset
+
+        result
+    }
 }
 
 impl Increment {
@@ -507,8 +545,9 @@ impl Instruction for LeftJump {
 }
 
 #[enum_dispatch(Instruction)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum InstructionSet {
+    Zero,
     Right,
     Left,
     Increment,
