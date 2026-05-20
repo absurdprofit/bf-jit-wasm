@@ -2,7 +2,7 @@ use std::task::Poll;
 
 use crate::{
     compiler::{Compiler, Runnable, RuntimeCompiler},
-    instruction::{self, Instruction, InstructionSet},
+    instruction::{self, Instruction, InstructionCollection, InstructionSet},
     tokeniser::{self},
 };
 
@@ -34,6 +34,7 @@ impl Program {
         };
         while self.counter < self.instructions.len() {
             let instruction = &self.instructions[self.counter].clone();
+            // dbg!(self.pointer, self.memory[self.pointer], instruction);
             instruction.execute(self);
             if let Some(ref mut pinned) = pinned {
                 if let Poll::Ready(result) = futures::poll!(pinned) {
@@ -46,6 +47,7 @@ impl Program {
                 }
             }
         }
+        dbg!(self.pointer, self.memory[self.pointer]);
     }
 
     fn collect_tokens(tokens: impl Iterator<Item = tokeniser::Token>) -> Vec<InstructionSet> {
@@ -67,13 +69,9 @@ impl Program {
                     );
                     let (start, _) = start.unwrap();
                     let end = instructions.len();
-                    // check for [-] pattern and replace with zeroing instruction
-                    if instructions[start..end].ends_with(&[
-                        instruction::RightJump::new(0).into(),
-                        instruction::Decrement::new(1).into(),
-                    ]) {
+                    if let Some(instruction) = instructions[start..end].try_fold() {
                         instructions.truncate(start);
-                        instructions.push(instruction::Zero.into());
+                        instructions.push(instruction);
                         continue;
                     }
                     instructions[start] = instruction::RightJump::new(end).into();

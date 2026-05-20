@@ -11,6 +11,18 @@ use crate::{
 pub struct Zero;
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct RightCarry {
+    count: usize,
+    source_mapping: tokeniser::SourceMapping,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LeftCarry {
+    count: usize,
+    source_mapping: tokeniser::SourceMapping,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Right {
     count: usize,
     source_mapping: tokeniser::SourceMapping,
@@ -56,6 +68,68 @@ pub struct LeftJump {
 pub trait Instruction {
     fn execute(&self, program: &mut Program) -> ();
     fn emit(&self, program: &Program) -> Vec<u8>;
+}
+
+impl RightCarry {
+    pub fn new(count: usize, source_mapping: tokeniser::SourceMapping) -> Self {
+        Self {
+            count,
+            source_mapping,
+        }
+    }
+}
+
+impl Instruction for RightCarry {
+    fn execute(&self, program: &mut Program) -> () {
+        let source = program.pointer;
+        let value = program.memory[source];
+        if value > 0 {
+            let target = program.pointer + self.count;
+            assert!(
+                target < program.memory.len(),
+                "RuntimeError: Memory overflow at {}",
+                self.source_mapping
+            );
+            program.memory[target] = program.memory[target].wrapping_add(value);
+            program.memory[source] = 0;
+        }
+        program.counter += 1;
+    }
+
+    fn emit(&self, program: &Program) -> Vec<u8> {
+        vec![]
+    }
+}
+
+impl LeftCarry {
+    pub fn new(count: usize, source_mapping: tokeniser::SourceMapping) -> Self {
+        Self {
+            count,
+            source_mapping,
+        }
+    }
+}
+
+impl Instruction for LeftCarry {
+    fn execute(&self, program: &mut Program) -> () {
+        let source = program.pointer;
+        let value = program.memory[source];
+        if value > 0 {
+            let target = program.pointer - self.count;
+            assert!(
+                program.pointer >= self.count,
+                "RuntimeError: Memory underflow at {}",
+                self.source_mapping
+            );
+            program.memory[target] = program.memory[target].wrapping_add(value);
+            program.memory[source] = 0;
+        }
+        program.counter += 1;
+    }
+
+    fn emit(&self, program: &Program) -> Vec<u8> {
+        vec![]
+    }
 }
 
 impl Instruction for Zero {
@@ -294,12 +368,11 @@ impl Right {
 impl Instruction for Right {
     fn execute(&self, program: &mut Program) -> () {
         program.pointer += self.count;
-        if program.pointer >= program.memory.len() {
-            match program.memory.try_reserve(self.count) {
-                Ok(_) => program.memory.push(0), // TODO: figure out what this should be
-                Err(_) => panic!("RuntimeError: Memory overflow at {}", self.source_mapping),
-            };
-        }
+        assert!(
+            program.pointer < program.memory.len(),
+            "RuntimeError: Memory overflow at {}",
+            self.source_mapping
+        );
         program.counter += 1;
     }
 
@@ -547,6 +620,8 @@ impl Instruction for LeftJump {
 #[enum_dispatch(Instruction)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum InstructionSet {
+    LeftCarry,
+    RightCarry,
     Zero,
     Right,
     Left,
@@ -556,4 +631,63 @@ pub enum InstructionSet {
     Output,
     LeftJump,
     RightJump,
+}
+
+pub trait InstructionCollection {
+    fn try_fold(&self) -> Option<InstructionSet>;
+}
+
+impl InstructionCollection for [InstructionSet] {
+    fn try_fold(&self) -> Option<InstructionSet> {
+        match self {
+            [
+                // [-]
+                InstructionSet::RightJump(RightJump { end: 0 }),
+                InstructionSet::Decrement(Decrement { amount: 1 }),
+            ] => Some(InstructionSet::Zero(Zero)),
+            [
+                // [->+<]
+                InstructionSet::RightJump(RightJump { end: 0 }),
+                InstructionSet::Decrement(Decrement { amount: 1 }),
+                InstructionSet::Right(Right {
+                    count: right_count,
+                    source_mapping,
+                }),
+                InstructionSet::Increment(Increment { amount: 1 }),
+                InstructionSet::Left(Left {
+                    count: left_count, ..
+                }),
+            ] => {
+                let left_count = *left_count;
+                let right_count = *right_count;
+                if right_count == left_count {
+                    Some(RightCarry::new(right_count, source_mapping.clone()).into())
+                } else {
+                    None
+                }
+            }
+            [
+                // [-<+>]
+                InstructionSet::RightJump(RightJump { end: 0 }),
+                InstructionSet::Decrement(Decrement { amount: 1 }),
+                InstructionSet::Left(Left {
+                    count: left_count,
+                    source_mapping,
+                }),
+                InstructionSet::Increment(Increment { amount: 1 }),
+                InstructionSet::Right(Right {
+                    count: right_count, ..
+                }),
+            ] => {
+                let left_count = *left_count;
+                let right_count = *right_count;
+                if right_count == left_count {
+                    Some(LeftCarry::new(left_count, source_mapping.clone()).into())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
 }
