@@ -34,7 +34,6 @@ impl Program {
         };
         while self.counter < self.instructions.len() {
             let instruction = &self.instructions[self.counter].clone();
-            // dbg!(self.pointer, self.memory[self.pointer], instruction);
             instruction.execute(self);
             if let Some(ref mut pinned) = pinned {
                 if let Poll::Ready(result) = futures::poll!(pinned) {
@@ -47,7 +46,6 @@ impl Program {
                 }
             }
         }
-        dbg!(self.pointer, self.memory[self.pointer]);
     }
 
     fn collect_tokens(tokens: impl Iterator<Item = tokeniser::Token>) -> Vec<InstructionSet> {
