@@ -263,19 +263,163 @@ impl Instruction for LeftCarry {
         let source = program.pointer;
         let value = program.memory[source];
         let mask = value != 0;
-        let target = source - (self.count * (mask) as usize);
         assert!(
             !mask || program.pointer >= self.count,
             "RuntimeError: Memory underflow at {}",
             self.source_mapping
         );
+        let target = source - (self.count * (mask) as usize);
         program.memory[target] = program.memory[target].wrapping_add(value);
         program.memory[source] = 0;
         program.counter += 1;
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        let program = program as *const Program;
+        // push program pointer constant onto stack
+        let mut result = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        // load program.pointer into stack <--- source
+        result.push(0x28); // i32.load load program.pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        // set $program_pointer
+        result.push(0x21); // local.set
+        result.push(0x02); // local index 2 ($program_pointer)
+        // get $program_pointer
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 ($program_pointer)
+        // push program pointer constant into stack
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        // load program.memory data pointer into stack
+        result.push(0x28); // i32.load load program.memory data pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        // add program.pointer + program.memory data pointer to get source cell address
+        result.push(0x6a); // i32.add add program.pointer and program.memory pointer to get cell address
+        // set (source) $cell_addr
+        result.push(0x21); // local.set
+        result.push(0x00); // local index 0 (cell address)
+        // get $program_pointer
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 ($program_pointer)
+        // get (source) $cell_addr
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 (cell address)
+        // load byte at cell address
+        result.push(0x2d); // i32.load8_u load cell into stack
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        // i32.eqz check if value is 0
+        result.push(0x45);
+        // i32.eqz check if previous check results in 0
+        result.push(0x45);
+        // push self.count onto stack
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.count as u32).inner, // i32 literal
+        );
+        // i32.mul (self.count * mask)
+        result.push(0x6c);
+        // i32.sub (source - (self.count * mask))
+        result.push(0x6b); // i32.sub
+        // set $program_pointer
+        result.push(0x21); // local.set
+        result.push(0x02); // local index 2 ($program_pointer)
+        // get $program_pointer
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 ($program_pointer)
+        result.push(0x41); // i32.const
+        result.push(0x00); // i32 literal 0
+        result.push(0x48); // i32.lt_s
+        result.push(0x04); // if
+        result.push(0x40); // void block type
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal 0
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.source_mapping.line() as u32).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut LEB128::from(self.source_mapping.column() as u32).inner, // i32 literal
+        );
+        let path = self.source_mapping.file_path();
+        let path_length = path.len() as u32;
+        let path = path as *const str as *const u8;
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(path as i32).inner, // i32 literal
+        );
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(path_length as i32).inner, // i32 literal
+        );
+        result.push(0x08); // throw
+        result.push(0x00); // $runtime_error_tag
+        result.push(0x0b); // end
+        // get $program_pointer
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 ($program_pointer)
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        // load program.memory data pointer into stack
+        result.push(0x28); // i32.load load program.memory data pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        // add $program_pointer + program.memory data pointer to get (target) cell address
+        result.push(0x6a); // i32.add add $program_pointer and program.memory data pointer to get cell address
+        // get $program_pointer
+        result.push(0x20); // local.get
+        result.push(0x02); // local index 2 ($program_pointer)
+        // push program pointer constant into stack
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        // load program.memory data pointer into stack
+        result.push(0x28); // i32.load load program.memory data pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        // add $program_pointer + program.memory data pointer to get (target) cell address
+        result.push(0x6a); // i32.add add $program_pointer and program.memory data pointer to get cell address
+        // load byte at cell address
+        result.push(0x2d); // i32.load8_u load cell into stack
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        // get $cell_addr
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 (cell address)
+        // load byte at cell address
+        result.push(0x2d); // i32.load8_u load cell into stack
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        result.push(0x6a); // i32.add add target value and source value
+        // store byte at $cell_addr
+        result.push(0x3a); // i32.store8
+        result.push(0x00); // alignment
+        result.push(0x00); // store offset
+        // get $program_pointer
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 ($cell_address)
+        // push 0 constant onto stack
+        result.push(0x41); // i32.const
+        result.push(0x00); // i32 literal 0
+        // store byte
+        result.push(0x3a); // i32.store8 store 0 in cell
+        result.push(0x00); // alignment
+        result.push(0x00); // store offset
+
+        result
     }
 }
 
@@ -814,27 +958,27 @@ impl InstructionCollection for [InstructionSet] {
                     None
                 }
             }
-            // [
-            //     // [-<+>]
-            //     InstructionSet::RightJump(RightJump { end: 0 }),
-            //     InstructionSet::Decrement(Decrement { amount: 1 }),
-            //     InstructionSet::Left(Left {
-            //         count: left_count,
-            //         source_mapping,
-            //     }),
-            //     InstructionSet::Increment(Increment { amount: 1 }),
-            //     InstructionSet::Right(Right {
-            //         count: right_count, ..
-            //     }),
-            // ] => {
-            //     let left_count = *left_count;
-            //     let right_count = *right_count;
-            //     if right_count == left_count {
-            //         Some(LeftCarry::new(left_count, source_mapping.clone()).into())
-            //     } else {
-            //         None
-            //     }
-            // }
+            [
+                // [-<+>]
+                InstructionSet::RightJump(RightJump { end: 0 }),
+                InstructionSet::Decrement(Decrement { amount: 1 }),
+                InstructionSet::Left(Left {
+                    count: left_count,
+                    source_mapping,
+                }),
+                InstructionSet::Increment(Increment { amount: 1 }),
+                InstructionSet::Right(Right {
+                    count: right_count, ..
+                }),
+            ] => {
+                let left_count = *left_count;
+                let right_count = *right_count;
+                if right_count == left_count {
+                    Some(LeftCarry::new(left_count, source_mapping.clone()).into())
+                } else {
+                    None
+                }
+            }
             _ => None,
         }
     }
