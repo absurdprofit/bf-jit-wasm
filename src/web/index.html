@@ -30,11 +30,21 @@
         }
       }
 
-      .time {
-        padding: 10px;
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 5px;
 
-        p {
-          margin: 0;
+        .time {
+          padding: 10px;
+
+          p {
+            margin: 0;
+          }
+        }
+
+        button {
+          height: max-content;
         }
       }
 
@@ -67,8 +77,11 @@
         <option value="upload">Upload Custom Program</option>
       </select>
     </div>
-    <div class="time">
-      <p>Time: <span class="raw"></span>ms</p>
+    <div class="toolbar">
+      <div class="time">
+        <p>Time: <span class="raw"></span>ms</p>
+      </div>
+      <button id="run">Re-run</button>
     </div>
     <pre id="output"></pre>
   </div>
@@ -103,6 +116,7 @@
     const timeRaw = document.querySelector('.time .raw');
     const cache = new Map();
     async function runExample(path) {
+      button.disabled = true;
       pre.textContent = "";
       const source = cache.get(path) ?? await fetchSource(path);
       cache.set(path, source);
@@ -110,34 +124,47 @@
       await run(source, path);
       const end = performance.now();
       timeRaw.textContent = (end - start).toFixed(2);
+      button.disabled = false;
+
+      return () => runExample(path);
     }
     async function runFile(source, path) {
+      button.disabled = true;
       pre.textContent = "";
       const start = performance.now();
       await run(source, path);
       const end = performance.now();
       timeRaw.textContent = (end - start).toFixed(2);
+      button.disabled = false;
+
+      return () => runFile(source, path);
     }
 
     const { memory } = await init();
     setMemory(memory);
 
     const pre = document.querySelector('#output');
+    let rerun = undefined;
 
     queueMicrotask(async () => {
       const path = 'examples/hello.bf';
-      await runExample(path);
+      rerun = await runExample(path);
+    });
+
+    const button = document.querySelector('#run');
+    button.addEventListener('click', async () => {
+      rerun?.();
     });
 
     const options = document.querySelector('#options');
     options.addEventListener('change', async (event) => {
       if (event.target.value === 'upload') {
         const { source, path } = await readFileFromSystem();
-        await runFile(source, path);
+        rerun = await runFile(source, path);
         return;
       }
       const path = `examples/${event.target.value}`;
-      await runExample(path);
+      rerun = await runExample(path);
     });
 
     for await (const chunk of output.readable) {
