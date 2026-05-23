@@ -8,6 +8,16 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct RightScan {
+    source_mapping: tokeniser::SourceMapping,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LeftScan {
+    source_mapping: tokeniser::SourceMapping,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Zero;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -68,6 +78,61 @@ pub struct LeftJump {
 pub trait Instruction {
     fn execute(&self, program: &mut Program) -> ();
     fn emit(&self, program: &Program) -> Vec<u8>;
+}
+
+impl RightScan {
+    pub fn new(source_mapping: tokeniser::SourceMapping) -> Self {
+        Self { source_mapping }
+    }
+}
+
+impl Instruction for RightScan {
+    fn execute(&self, program: &mut Program) -> () {
+        let memory = &program.memory;
+        let memory_len = memory.len();
+        let mut program_pointer = program.pointer;
+        while memory[program_pointer] != 0 {
+            program_pointer += 1;
+            assert!(
+                program_pointer < memory_len,
+                "RuntimeError: Memory overflow at {}",
+                self.source_mapping
+            );
+        }
+        program.pointer = program_pointer;
+        program.counter += 1;
+    }
+
+    fn emit(&self, program: &Program) -> Vec<u8> {
+        vec![]
+    }
+}
+
+impl LeftScan {
+    pub fn new(source_mapping: tokeniser::SourceMapping) -> Self {
+        Self { source_mapping }
+    }
+}
+
+impl Instruction for LeftScan {
+    fn execute(&self, program: &mut Program) -> () {
+        let memory = &program.memory;
+        let mut program_pointer = program.pointer;
+        while memory[program_pointer] != 0 {
+            assert!(
+                program_pointer > 0,
+                "RuntimeError: Memory overflow at {}",
+                self.source_mapping
+            );
+            program_pointer -= 1;
+        }
+        program.pointer = program_pointer;
+        program.counter += 1;
+    }
+
+    fn emit(&self, program: &Program) -> Vec<u8> {
+        vec![]
+    }
 }
 
 impl RightCarry {
@@ -912,6 +977,8 @@ impl Instruction for LeftJump {
 #[enum_dispatch(Instruction)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum InstructionSet {
+    RightScan,
+    LeftScan,
     LeftCarry,
     RightCarry,
     Zero,
@@ -979,6 +1046,22 @@ impl InstructionCollection for [InstructionSet] {
                     None
                 }
             }
+            [
+                // [>]
+                InstructionSet::RightJump(RightJump { end: 0 }),
+                InstructionSet::Right(Right {
+                    count: 1,
+                    source_mapping,
+                }),
+            ] => Some(RightScan::new(source_mapping.clone()).into()),
+            [
+                // [<]
+                InstructionSet::RightJump(RightJump { end: 0 }),
+                InstructionSet::Left(Left {
+                    count: 1,
+                    source_mapping,
+                }),
+            ] => Some(LeftScan::new(source_mapping.clone()).into()),
             _ => None,
         }
     }
