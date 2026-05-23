@@ -338,7 +338,9 @@ impl Input {
 impl Instruction for Input {
     fn execute(&self, program: &mut Program) -> () {
         for _ in 0..self.count {
-            RuntimeIO::read_exact(&mut program.memory[program.pointer..program.pointer + 1])
+            program
+                .io
+                .read_exact(&mut program.memory[program.pointer..program.pointer + 1])
                 .expect("Failed to read byte from standard input.");
         }
         program.counter += 1;
@@ -382,7 +384,9 @@ impl Output {
 impl Instruction for Output {
     fn execute(&self, program: &mut Program) -> () {
         for _ in 0..self.count {
-            RuntimeIO::write_all(&program.memory[program.pointer..program.pointer + 1])
+            program
+                .io
+                .write_all(&program.memory[program.pointer..program.pointer + 1])
                 .expect("Failed to write byte to standard output.");
         }
         program.counter += 1;
