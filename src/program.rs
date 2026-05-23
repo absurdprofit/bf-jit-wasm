@@ -2,7 +2,7 @@ use std::task::Poll;
 
 use crate::{
     compiler::{Compiler, Runnable, RuntimeCompiler},
-    instruction::{self, Instruction, InstructionCollection, InstructionSet},
+    instruction::{self, Instruction, InstructionSet, Optimisation},
     tokeniser::{self},
 };
 
@@ -56,7 +56,7 @@ impl Program {
             match token {
                 tokeniser::Token::RightJump(source_mapping) => {
                     stack.push((instructions.len(), source_mapping));
-                    instructions.push(instruction::RightJump::new(0).into());
+                    instructions.push(instruction::core::RightJump::new(0).into());
                 }
                 tokeniser::Token::LeftJump(source_mapping) => {
                     let start = stack.pop();
@@ -72,8 +72,8 @@ impl Program {
                         instructions.push(instruction);
                         continue;
                     }
-                    instructions[start] = instruction::RightJump::new(end).into();
-                    instructions.push(instruction::LeftJump::new(start).into());
+                    instructions[start] = instruction::core::RightJump::new(end).into();
+                    instructions.push(instruction::core::LeftJump::new(start).into());
                 }
                 token => {
                     let mut token_instance_count: usize = 1;
@@ -88,22 +88,24 @@ impl Program {
 
                     let instruction: InstructionSet = match token {
                         tokeniser::Token::Right(source_mapping) => {
-                            instruction::Right::new(token_instance_count, source_mapping).into()
+                            instruction::core::Right::new(token_instance_count, source_mapping)
+                                .into()
                         }
                         tokeniser::Token::Left(source_mapping) => {
-                            instruction::Left::new(token_instance_count, source_mapping).into()
+                            instruction::core::Left::new(token_instance_count, source_mapping)
+                                .into()
                         }
                         tokeniser::Token::Increment => {
-                            instruction::Increment::new(token_instance_count as u8).into()
+                            instruction::core::Increment::new(token_instance_count as u8).into()
                         }
                         tokeniser::Token::Decrement => {
-                            instruction::Decrement::new(token_instance_count as u8).into()
+                            instruction::core::Decrement::new(token_instance_count as u8).into()
                         }
                         tokeniser::Token::Input => {
-                            instruction::Input::new(token_instance_count).into()
+                            instruction::core::Input::new(token_instance_count).into()
                         }
                         tokeniser::Token::Output => {
-                            instruction::Output::new(token_instance_count).into()
+                            instruction::core::Output::new(token_instance_count).into()
                         }
                         _ => unreachable!(
                             "Jumps have been specially handled earlier in the routine."
