@@ -104,7 +104,72 @@ impl Instruction for RightScan {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        // add try catch with runtime_error_tag throw
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
+        result.push(0x21); // local.set
+        result.push(0x00); // local index 0 (cell address)
+        result.push(0x02); // block
+        result.push(0x40); // void
+        result.push(0x03); // loop
+        result.push(0x40); // void
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 (cell address)
+        result.push(0x2d); // i32.load8_u
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        result.push(0x45); // i32.eqz check if cell value is zero
+        result.push(0x0d); // br_if
+        result.push(0x01); // break depth
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 (cell address)
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal 1
+        result.push(0x6a); // i32.add 1 to cell address
+        result.push(0x21); // local.set
+        result.push(0x00); // local index 0 (cell address)
+        // use a loop to increment cell address by 1 then load the byte at cell address
+        // break out of the loop block if value on stack is 0
+        // wrap load instruction in try catch, use runtime_error_tag to propagate errors
+        result.push(0x0c); // br
+        result.push(0x00); // break depth
+        result.push(0x0b); // end loop
+        result.push(0x0b); // end block
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 (cell address)
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6b); // i32.sub sub program.memory pointer from from $cell_address to get program.pointer
+        result.push(0x36); // i32.store
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+
+        result
     }
 }
 
@@ -131,7 +196,72 @@ impl Instruction for LeftScan {
     }
 
     fn emit(&self, program: &Program) -> Vec<u8> {
-        vec![]
+        // add try catch with runtime_error_tag throw
+        let program = program as *const Program;
+        let mut result: Vec<u8> = vec![
+            0x41, // i32.const
+        ];
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load program pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6a); // i32.add add program pointer and memory pointer to get cell address
+        result.push(0x21); // local.set
+        result.push(0x00); // local index 0 (cell address)
+        result.push(0x02); // block
+        result.push(0x40); // void
+        result.push(0x03); // loop
+        result.push(0x40); // void
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 (cell address)
+        result.push(0x2d); // i32.load8_u
+        result.push(0x00); // alignment
+        result.push(0x00); // load offset
+        result.push(0x45); // i32.eqz check if cell value is zero
+        result.push(0x0d); // br_if
+        result.push(0x01); // break depth
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 (cell address)
+        result.push(0x41); // i32.const
+        result.push(0x01); // i32 literal 1
+        result.push(0x6b); // i32.sub 1 from cell address
+        result.push(0x21); // local.set
+        result.push(0x00); // local index 0 (cell address)
+        // use a loop to increment cell address by 1 then load the byte at cell address
+        // break out of the loop block if value on stack is 0
+        // wrap load instruction in try catch, use runtime_error_tag to propagate errors
+        result.push(0x0c); // br
+        result.push(0x00); // break depth
+        result.push(0x0b); // end loop
+        result.push(0x0b); // end block
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x20); // local.get
+        result.push(0x00); // local index 0 (cell address)
+        result.push(0x41); // i32.const
+        result.append(
+            &mut SLEB128::from(program as i32).inner, // i32 literal
+        );
+        result.push(0x28); // i32.load load memory pointer into stack
+        result.push(0x02); // alignment
+        result.push(0x0c); // load offset
+        result.push(0x6b); // i32.sub sub program.memory pointer from from $cell_address to get program.pointer
+        result.push(0x36); // i32.store
+        result.push(0x02); // alignment
+        result.push(0x00); // load offset
+
+        result
     }
 }
 
