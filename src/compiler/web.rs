@@ -1,3 +1,8 @@
+use js_sys::Function;
+use wasm_bindgen::JsValue;
+
+use crate::compiler::{Runnable, RuntimeCompilerError};
+
 pub struct LEB128 {
     pub inner: Vec<u8>,
 }
@@ -47,5 +52,35 @@ impl From<i32> for SLEB128 {
         }
 
         Self { inner }
+    }
+}
+
+impl From<Option<f64>> for RuntimeCompilerError {
+    fn from(value: Option<f64>) -> Self {
+        if let Some(error) = value {
+            match error {
+                0.0 => RuntimeCompilerError::TypeError,
+                1.0 => RuntimeCompilerError::CompileError,
+                2.0 => RuntimeCompilerError::LinkError,
+                3.0 => RuntimeCompilerError::RuntimeError,
+                _ => RuntimeCompilerError::UnknownDefect,
+            }
+        } else {
+            RuntimeCompilerError::UnknownDefect
+        }
+    }
+}
+
+pub struct WebAssembly(Function);
+
+impl WebAssembly {
+    pub fn new(function: Function) -> Self {
+        Self(function)
+    }
+}
+
+impl Runnable for WebAssembly {
+    fn run(&self) -> () {
+        let _ = self.0.call0(&JsValue::null());
     }
 }
