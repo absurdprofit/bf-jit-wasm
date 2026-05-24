@@ -18,3 +18,19 @@ pub enum RuntimeIO {
     NativeRuntimeIO,
     WebRuntimeIO,
 }
+
+const PLATFORM_RUNTIME_IO: RuntimeIO = if cfg!(target_arch = "wasm32") {
+    RuntimeIO::WebRuntimeIO(WebRuntimeIO)
+} else {
+    RuntimeIO::NativeRuntimeIO(NativeRuntimeIO)
+};
+
+impl RuntimeIO {
+    pub fn read_exact(buf: &mut [u8]) -> io::Result<()> {
+        PLATFORM_RUNTIME_IO.read_exact(buf)
+    }
+
+    pub fn write_all(buf: &[u8]) -> io::Result<()> {
+        PLATFORM_RUNTIME_IO.write_all(buf)
+    }
+}
