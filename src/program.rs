@@ -44,7 +44,7 @@ impl Program {
     pub async fn run(&mut self) {
         let compile_target = self.compiler.compile(self.instructions.iter(), &self);
 
-        let mut pinned = if let Ok(future) = compile_target {
+        let mut compile_target = if let Ok(future) = compile_target {
             Some(Box::pin(future))
         } else {
             None
@@ -52,11 +52,17 @@ impl Program {
         while self.counter < self.instructions.len() {
             let instruction = &self.instructions[self.counter].clone();
             instruction.execute(self);
-            if let Some(ref mut pinned) = pinned {
+            if let Some(ref mut pinned) = compile_target {
                 if let Poll::Ready(result) = futures::poll!(pinned) {
-                    if let Ok(runnable) = result {
-                        runnable.run();
-                        break;
+                    match result {
+                        Ok(runnable) => {
+                            runnable.run();
+                            break;
+                        }
+                        Err(error) => {
+                            eprintln!("Compilation failed with error: {:?}", error);
+                            compile_target = None;
+                        }
                     }
                 } else {
                     self.compiler.yield_now().await;

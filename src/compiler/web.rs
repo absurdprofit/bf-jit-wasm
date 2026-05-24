@@ -1,11 +1,9 @@
-#[cfg(target_arch = "wasm32")]
 use futures::FutureExt;
 use js_sys::{Function, JsOption, Promise};
 use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
 use wasm_bindgen_futures::JsFuture;
 
 use crate::compiler::{Runnable, RuntimeCompilerError, RuntimeCompilerTarget};
-#[cfg(target_arch = "wasm32")]
 use crate::{
     compiler::{Compiler, RuntimeCompilerTargetFuture, RuntimeYieldFuture},
     instruction::{self, Instruction},
@@ -148,7 +146,6 @@ pub struct WebRuntimeCompiler;
 ))
 
 */
-#[cfg(target_arch = "wasm32")]
 const HEADER: &[u8] = &[
     0x00, 0x61, 0x73, 0x6d, // WASM_BINARY_MAGIC
     0x01, 0x00, 0x00, 0x00, // WASM_BINARY_VERSION
@@ -236,7 +233,6 @@ const HEADER: &[u8] = &[
     0x02, // export func index
 ];
 
-#[cfg(target_arch = "wasm32")]
 const FOOTER: &[u8] = &[
     // section "name"
     0x00, // section code
@@ -284,7 +280,6 @@ const FOOTER: &[u8] = &[
     0x67,
 ];
 
-#[cfg(target_arch = "wasm32")]
 impl Compiler for WebRuntimeCompiler {
     // source is not a full WASM binary, it is simply the concatenation of emit_wasm results from instructions.
     // compilation could fail, let's handle failures by matching the error ID.

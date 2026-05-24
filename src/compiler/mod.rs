@@ -23,6 +23,7 @@ use crate::{
     instruction::{self},
 };
 
+#[derive(Debug)]
 pub enum RuntimeCompilerError {
     TypeError,
     CompileError,
