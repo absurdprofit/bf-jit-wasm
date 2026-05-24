@@ -1,3 +1,4 @@
+pub mod native;
 pub mod web;
 
 use std::{
@@ -6,19 +7,11 @@ use std::{
 };
 
 use enum_dispatch::enum_dispatch;
-#[cfg(target_arch = "wasm32")]
-use futures::FutureExt;
-#[cfg(not(target_arch = "wasm32"))]
-use futures::future::{Ready, ready};
-use js_sys::{Function, JsOption, Promise, futures::JsFuture};
-use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
-use crate::compiler::web::{LEB128, SLEB128};
-use crate::program::Program;
+use crate::{compiler::web::WebRuntimeCompiler, program::Program};
 use crate::{
-    compiler::web::WebAssembly,
-    instruction::{self, Instruction},
+    compiler::{native::NativeRuntimeCompiler, web::WebAssembly},
+    instruction::{self},
 };
 
 pub enum RuntimeCompilerError {
@@ -27,22 +20,6 @@ pub enum RuntimeCompilerError {
     LinkError,
     RuntimeError,
     UnknownDefect,
-}
-
-pub struct RuntimeCompiler;
-
-pub trait Compiler {
-    type RuntimeCompilerTargetInnerFuture: Unpin
-        + Future<Output = Result<RuntimeCompilerTarget, RuntimeCompilerError>>;
-    fn compile<'a>(
-        source: impl Iterator<Item = &'a instruction::InstructionSet>,
-        program: &'a Program,
-    ) -> Result<
-        RuntimeCompilerTargetFuture<Self::RuntimeCompilerTargetInnerFuture>,
-        RuntimeCompilerError,
-    >;
-
-    fn yield_now() -> impl Future<Output = ()>;
 }
 
 #[enum_dispatch]
@@ -80,18 +57,22 @@ impl<F: Unpin + Future<Output = Result<RuntimeCompilerTarget, RuntimeCompilerErr
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-impl Compiler for RuntimeCompiler {
-    type CompileFuture = Ready<Result<RuntimeCompilerTarget, RuntimeCompilerError>>;
-
+pub trait Compiler {
+    type RuntimeCompilerTargetInnerFuture: Unpin
+        + Future<Output = Result<RuntimeCompilerTarget, RuntimeCompilerError>>;
     fn compile<'a>(
-        _source: impl Iterator<Item = &'a instruction::InstructionSet>,
-        _program: &'a Program,
-    ) -> Result<Self::CompileFuture, RuntimeCompilerError> {
-        Err(RuntimeCompilerError::UnknownDefect)
-    }
+        &self,
+        source: impl Iterator<Item = &'a instruction::InstructionSet>,
+        program: &'a Program,
+    ) -> Result<
+        RuntimeCompilerTargetFuture<Self::RuntimeCompilerTargetInnerFuture>,
+        RuntimeCompilerError,
+    >;
 
-    fn yield_now() -> impl Future<Output = ()> {
-        ready(())
-    }
+    fn yield_now(&self) -> impl Future<Output = ()>;
+}
+
+pub enum RuntimeCompiler {
+    WebRuntimeCompiler(WebRuntimeCompiler),
+    NativeRuntimeCompiler(NativeRuntimeCompiler),
 }

@@ -1,13 +1,13 @@
 #[cfg(target_arch = "wasm32")]
 use futures::FutureExt;
-use js_sys::{Function, JsFunction, JsOption, Promise};
+use js_sys::{Function, JsOption, Promise};
 use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
 use wasm_bindgen_futures::JsFuture;
 
 use crate::compiler::{Runnable, RuntimeCompilerError, RuntimeCompilerTarget};
 #[cfg(target_arch = "wasm32")]
 use crate::{
-    compiler::{Compiler, RuntimeCompiler, RuntimeCompilerTargetFuture},
+    compiler::{Compiler, RuntimeCompilerTargetFuture},
     instruction::{self, Instruction},
     program::Program,
 };
@@ -286,6 +286,7 @@ impl Compiler for WebRuntimeCompiler {
     // compilation could fail, let's handle failures by matching the error ID.
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
     fn compile<'a>(
+        &self,
         source: impl Iterator<Item = &'a instruction::InstructionSet>,
         program: &'a Program,
     ) -> Result<
@@ -400,7 +401,7 @@ impl Compiler for WebRuntimeCompiler {
         }
     }
 
-    fn yield_now() -> impl Future<Output = ()> {
+    fn yield_now(&self) -> impl Future<Output = ()> {
         use wasm_bindgen_futures::JsFuture;
 
         JsFuture::from(extern_yield()).map(|_| ())
