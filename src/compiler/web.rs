@@ -7,7 +7,7 @@ use wasm_bindgen_futures::JsFuture;
 use crate::compiler::{Runnable, RuntimeCompilerError, RuntimeCompilerTarget};
 #[cfg(target_arch = "wasm32")]
 use crate::{
-    compiler::{Compiler, RuntimeCompilerTargetFuture},
+    compiler::{Compiler, RuntimeCompilerTargetFuture, RuntimeYieldFuture},
     instruction::{self, Instruction},
     program::Program,
 };
@@ -103,6 +103,14 @@ extern "C" {
 
     fn extern_yield() -> Promise<JsValue>;
 }
+
+pub type WebRuntimeCompilerTargetFuture = futures::future::Map<
+    JsFuture<Function>,
+    fn(Result<Function, JsValue>) -> Result<RuntimeCompilerTarget, RuntimeCompilerError>,
+>;
+
+pub type WebRuntimeYieldFuture =
+    futures::future::Map<JsFuture<JsValue>, fn(Result<JsValue, JsValue>) -> ()>;
 
 pub struct WebRuntimeCompiler;
 
@@ -278,10 +286,6 @@ const FOOTER: &[u8] = &[
 
 #[cfg(target_arch = "wasm32")]
 impl Compiler for WebRuntimeCompiler {
-    type RuntimeCompilerTargetInnerFuture = futures::future::Map<
-        JsFuture<Function>,
-        fn(Result<Function, JsValue>) -> Result<RuntimeCompilerTarget, RuntimeCompilerError>,
-    >;
     // source is not a full WASM binary, it is simply the concatenation of emit_wasm results from instructions.
     // compilation could fail, let's handle failures by matching the error ID.
     // in the case of compilation failure we can simply do nothing and let the interpreter run to completion.
@@ -289,10 +293,7 @@ impl Compiler for WebRuntimeCompiler {
         &self,
         source: impl Iterator<Item = &'a instruction::InstructionSet>,
         program: &'a Program,
-    ) -> Result<
-        RuntimeCompilerTargetFuture<Self::RuntimeCompilerTargetInnerFuture>,
-        RuntimeCompilerError,
-    > {
+    ) -> Result<RuntimeCompilerTargetFuture, RuntimeCompilerError> {
         use crate::compiler::RuntimeCompilerTargetFuture;
 
         let mut source = Vec::from_iter(
@@ -395,15 +396,18 @@ impl Compiler for WebRuntimeCompiler {
                         )
                             -> Result<RuntimeCompilerTarget, RuntimeCompilerError>,
                 );
-                Ok(RuntimeCompilerTargetFuture::new(promise))
+                Ok(RuntimeCompilerTargetFuture::WebRuntimeCompilerTargetFuture(
+                    promise,
+                ))
             }
             Err(js_value) => Err(js_value.as_f64().into()),
         }
     }
 
-    fn yield_now(&self) -> impl Future<Output = ()> {
-        use wasm_bindgen_futures::JsFuture;
-
-        JsFuture::from(extern_yield()).map(|_| ())
+    fn yield_now(&self) -> RuntimeYieldFuture {
+        fn to_unit(_result: Result<JsValue, JsValue>) -> () {}
+        RuntimeYieldFuture::WebRuntimeYieldFuture(
+            JsFuture::from(extern_yield()).map(to_unit as fn(Result<JsValue, JsValue>) -> ()),
+        )
     }
 }

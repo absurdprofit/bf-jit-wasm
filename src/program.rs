@@ -1,8 +1,11 @@
 use std::task::Poll;
 
 use crate::{
-    compiler::{Compiler, Runnable, RuntimeCompiler},
+    compiler::{
+        Compiler, Runnable, RuntimeCompiler, native::NativeRuntimeCompiler, web::WebRuntimeCompiler,
+    },
     instruction::{self, Instruction, InstructionSet, Optimisation},
+    io::{RuntimeIO, native::NativeRuntimeIO, web::WebRuntimeIO},
     tokeniser::{self},
 };
 
@@ -11,21 +14,35 @@ pub struct Program {
     pub pointer: usize,
     pub counter: usize,
     pub memory: Vec<u8>,
+    pub io: RuntimeIO,
+    compiler: RuntimeCompiler,
     instructions: Vec<InstructionSet>,
 }
 
 impl Program {
     pub fn new(tokens: impl Iterator<Item = tokeniser::Token>) -> Self {
+        let io = if cfg!(target_arch = "wasm32") {
+            WebRuntimeIO.into()
+        } else {
+            NativeRuntimeIO.into()
+        };
+        let compiler = if cfg!(target_arch = "wasm32") {
+            WebRuntimeCompiler.into()
+        } else {
+            NativeRuntimeCompiler.into()
+        };
         Self {
             counter: 0,
             memory: vec![0; 1024 * 1024],
             pointer: 0,
+            io,
+            compiler,
             instructions: Self::collect_tokens(tokens),
         }
     }
 
     pub async fn run(&mut self) {
-        let compile_target = RuntimeCompiler::compile(self.instructions.iter(), &self);
+        let compile_target = self.compiler.compile(self.instructions.iter(), &self);
 
         let mut pinned = if let Ok(future) = compile_target {
             Some(Box::pin(future))
@@ -42,7 +59,7 @@ impl Program {
                         break;
                     }
                 } else {
-                    RuntimeCompiler::yield_now().await;
+                    self.compiler.yield_now().await;
                 }
             }
         }
