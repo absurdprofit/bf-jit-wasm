@@ -1,10 +1,10 @@
 use crate::{
-    compiler::{LEB128, SLEB128},
+    compiler::web::{LEB128, SLEB128},
     instruction::{
         Instruction, InstructionSet, Optimisation,
         optimisation::{LeftCarry, LeftScan, RightCarry, RightScan, Zero},
     },
-    io::{IO, RuntimeIO},
+    io::IO,
     program::Program,
     tokeniser,
 };

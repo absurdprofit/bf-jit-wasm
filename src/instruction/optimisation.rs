@@ -1,5 +1,5 @@
 use crate::{
-    compiler::{LEB128, SLEB128},
+    compiler::web::{LEB128, SLEB128},
     instruction::Instruction,
     program::Program,
     tokeniser,
