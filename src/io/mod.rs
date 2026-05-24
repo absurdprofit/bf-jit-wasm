@@ -11,6 +11,7 @@ use crate::io::{native::NativeRuntimeIO, web::WebRuntimeIO};
 pub trait IO {
     fn read_exact(&self, buf: &mut [u8]) -> io::Result<()>;
     fn write_all(&self, buf: &[u8]) -> io::Result<()>;
+    fn write_error(&self, err: &str) -> io::Result<()>;
 }
 
 #[enum_dispatch(IO)]

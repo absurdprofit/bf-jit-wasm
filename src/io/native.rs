@@ -16,4 +16,10 @@ impl IO for NativeRuntimeIO {
 
         io::stdout().write_all(buf)
     }
+
+    fn write_error(&self, err: &str) -> io::Result<()> {
+        use std::io::Write;
+
+        io::stderr().write_all(err.as_bytes())
+    }
 }

@@ -10,6 +10,12 @@ extern "C" {
     fn extern_write(buf: u8) -> ();
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console, js_name = error)]
+    fn extern_write_error(s: &str);
+}
+
 pub struct WebRuntimeIO;
 
 impl IO for WebRuntimeIO {
@@ -26,6 +32,13 @@ impl IO for WebRuntimeIO {
             extern_write(*byte);
         }
 
+        Ok(())
+    }
+
+    fn write_error(&self, err: &str) -> io::Result<()> {
+        // In a web environment, we can only write errors to the console.
+        // We can use the `web_sys` crate to log errors to the console.
+        extern_write_error(err);
         Ok(())
     }
 }

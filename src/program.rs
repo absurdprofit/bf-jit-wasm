@@ -5,7 +5,7 @@ use crate::{
         Compiler, Runnable, RuntimeCompiler, native::NativeRuntimeCompiler, web::WebRuntimeCompiler,
     },
     instruction::{self, Instruction, InstructionSet, Optimisation},
-    io::{RuntimeIO, native::NativeRuntimeIO, web::WebRuntimeIO},
+    io::{IO, RuntimeIO, native::NativeRuntimeIO, web::WebRuntimeIO},
     tokeniser::{self},
 };
 
@@ -60,7 +60,12 @@ impl Program {
                             break;
                         }
                         Err(error) => {
-                            eprintln!("Compilation failed with error: {:?}", error);
+                            self.io
+                                .write_error(&format!(
+                                    "Compilation failed with error: {:?}\n",
+                                    error
+                                ))
+                                .ok();
                             compile_target = None;
                         }
                     }
