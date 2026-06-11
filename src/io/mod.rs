@@ -19,3 +19,13 @@ pub enum RuntimeIO {
     NativeRuntimeIO,
     WebRuntimeIO,
 }
+
+impl RuntimeIO {
+    pub fn new() -> Self {
+        if cfg!(target_arch = "wasm32") {
+            WebRuntimeIO.into()
+        } else {
+            NativeRuntimeIO.into()
+        }
+    }
+}

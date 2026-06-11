@@ -1,4 +1,6 @@
 {
   "editor.formatOnSave": true,
-  "rust-analyzer.cargo.target": "wasm32-unknown-unknown"
+  "editor.defaultFormatter": "rust-lang.rust-analyzer",
+  "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
+  "rust-analyzer.check.command": "clippy"
 }

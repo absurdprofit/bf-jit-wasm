@@ -91,3 +91,13 @@ pub enum RuntimeCompiler {
     WebRuntimeCompiler(WebRuntimeCompiler),
     NativeRuntimeCompiler(NativeRuntimeCompiler),
 }
+
+impl RuntimeCompiler {
+    pub fn new() -> Self {
+        if cfg!(target_arch = "wasm32") {
+            WebRuntimeCompiler.into()
+        } else {
+            NativeRuntimeCompiler.into()
+        }
+    }
+}
