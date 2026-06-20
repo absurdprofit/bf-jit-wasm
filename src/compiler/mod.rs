@@ -2,7 +2,7 @@ pub mod native;
 pub mod web;
 
 use std::{
-    pin::Pin,
+    pin::{Pin, pin},
     task::{Context, Poll},
 };
 
@@ -53,8 +53,8 @@ impl Future for RuntimeCompilerTargetFuture {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         match &mut *self {
-            Self::WebRuntimeCompilerTargetFuture(f) => Pin::new(f).poll(cx),
-            Self::NativeRuntimeCompilerTargetFuture(f) => Pin::new(f).poll(cx),
+            Self::WebRuntimeCompilerTargetFuture(f) => pin!(f).poll(cx),
+            Self::NativeRuntimeCompilerTargetFuture(f) => pin!(f).poll(cx),
         }
     }
 }

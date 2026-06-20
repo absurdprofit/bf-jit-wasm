@@ -1,11 +1,9 @@
-use std::task::Poll;
+use std::{pin::pin, task::Poll};
 
 use crate::{
-    compiler::{
-        Compiler, Runnable, RuntimeCompiler, native::NativeRuntimeCompiler, web::WebRuntimeCompiler,
-    },
+    compiler::{Compiler, Runnable, RuntimeCompiler},
     instruction::{self, Instruction, InstructionSet, Optimisation},
-    io::{IO, RuntimeIO, native::NativeRuntimeIO, web::WebRuntimeIO},
+    io::{IO, RuntimeIO},
     tokeniser::{self},
 };
 
@@ -35,7 +33,7 @@ impl Program {
         let compile_target = self.compiler.compile(self.instructions.iter(), &self);
 
         let mut compile_target = if let Ok(future) = compile_target {
-            Some(Box::pin(future))
+            Some(pin!(future))
         } else {
             None
         };
