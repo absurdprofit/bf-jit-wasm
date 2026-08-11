@@ -60,34 +60,34 @@ impl PartialEq for Token {
 pub fn tokenise(source: &str, path: &str) -> impl Iterator<Item = Token> {
     let mut line = 1;
     let mut column = 0;
-    source.as_bytes().iter().filter_map(move |c| {
-        if *c == b'\n' {
+    source.chars().filter_map(move |c| {
+        if c == '\n' {
             line += 1;
             column = 0;
         } else {
             column += 1;
         }
         match c {
-            b'>' => Some(Token::Right(SourceMapping {
+            '>' => Some(Token::Right(SourceMapping {
                 column,
                 line,
                 file_path: String::from(path),
             })),
-            b'<' => Some(Token::Left(SourceMapping {
+            '<' => Some(Token::Left(SourceMapping {
                 column,
                 line,
                 file_path: String::from(path),
             })),
-            b'+' => Some(Token::Increment),
-            b'-' => Some(Token::Decrement),
-            b'.' => Some(Token::Output),
-            b',' => Some(Token::Input),
-            b'[' => Some(Token::RightJump(SourceMapping {
+            '+' => Some(Token::Increment),
+            '-' => Some(Token::Decrement),
+            '.' => Some(Token::Output),
+            ',' => Some(Token::Input),
+            '[' => Some(Token::RightJump(SourceMapping {
                 column,
                 line,
                 file_path: String::from(path),
             })),
-            b']' => Some(Token::LeftJump(SourceMapping {
+            ']' => Some(Token::LeftJump(SourceMapping {
                 column,
                 line,
                 file_path: String::from(path),
