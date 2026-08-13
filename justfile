@@ -3,7 +3,7 @@ set unstable #enabled for the use of which() function
 install_wasm_bindgen_cli := if which("wasm-bindgen") != "" {
   "echo ✅ wasm-bindgen-cli is already installed"
 } else {
-  "cargo install wasm-bindgen-cli"
+  "cargo install wasm-bindgen-cli --version 0.2.121"
 }
 
 install_wasm_opt_cli := if which("wasm-opt") != "" {
@@ -20,7 +20,7 @@ run-debug path:
   @cargo run -- {{path}}
 
 build:
-  @cargo build --release
+  @cargo build --release --offline
 
 build-web: build-wasm32
   @{{install_wasm_bindgen_cli}}
@@ -39,4 +39,4 @@ build-web: build-wasm32
 
 build-wasm32:
   @rustup target add wasm32-unknown-unknown
-  @cargo build --release --lib --target wasm32-unknown-unknown
+  @cargo build --release --offline --lib --target wasm32-unknown-unknown
