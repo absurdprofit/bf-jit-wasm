@@ -1,5 +1,4 @@
 set unstable #enabled for the use of which() function
-set lists
 
 install_wasm_bindgen_cli := if which("wasm-bindgen") != "" {
   "echo ✅ wasm-bindgen-cli is already installed"
